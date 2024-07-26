@@ -1,0 +1,6 @@
+1. Get the status of the ETCD and Broker pods by running:
+  kubectl get pods -l app=etcd
+  kubectl get pods -l app=broker
+
+2. To access the Broker service, you can use the following command:
+  kubectl port-forward svc/{{ include "broker.fullname" . }} 6650:6650

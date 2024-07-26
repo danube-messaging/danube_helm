@@ -1,0 +1,39 @@
+# Default values for danube-helm-chart.
+
+# Global settings
+replicaCount: 1
+
+# ETCD configuration
+etcd:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: bitnami/etcd
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 2379
+
+# Broker configuration
+broker:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/your-username/danube-broker
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 6650
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  env:
+    RUST_LOG: danube_broker=trace
+  brokerAddr: "0.0.0.0:6650"
+  clusterName: "MY_CLUSTER"
+  metaStoreAddr: "etcd:2379"
