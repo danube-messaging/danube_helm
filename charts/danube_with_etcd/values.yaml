@@ -19,8 +19,8 @@ etcd:
 broker:
   replicaCount: 1
   image:
-    repository: ghcr.io/danrusei/danube
-    tag: latest
+    repository: ghcr.io/danrusei/danube-broker
+    tag: v0.1.0
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
