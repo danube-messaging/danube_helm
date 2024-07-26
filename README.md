@@ -14,16 +14,16 @@ This Helm chart deploys the Danube Cluster with ETCD as metadata storage in the 
 First, add the repository to your Helm client:
 
 ```sh
-helm repo add myrepo https://myhelmrepo.example.com
+helm repo add danube https://danrusei.github.io/danube_helm
 helm repo update
 ```
 
 ### Install the Helm Chart
 
-You can install the chart with the release name `my-danube-broker` using the following command:
+You can install the chart with the release name `my-danube-cluster` using the following command:
 
 ```sh
-helm install my-danube-broker myrepo/danube-broker-helm-chart
+helm install my-danube-cluster danube/danube-helm-chart
 ```
 
 This will deploy the Danube Broker and an ETCD instance with the default configuration.
@@ -68,13 +68,13 @@ The following table lists the configurable parameters of the Danube Broker chart
 You can override the default values by providing a custom `values.yaml` file:
 
 ```sh
-helm install my-danube-broker myrepo/danube-broker-helm-chart -f custom-values.yaml
+helm install my-danube-cluster danube/danube-helm-chart -f custom-values.yaml
 ```
 
 Alternatively, you can specify individual values using the `--set` flag:
 
 ```sh
-helm install my-danube-broker myrepo/danube-broker-helm-chart --set broker.replicaCount=2 --set broker.brokerAddr="0.0.0.0:6651"
+helm install my-danube-cluster danube/danube-helm-chart --set broker.replicaCount=2 --set broker.brokerAddr="0.0.0.0:6651"
 ```
 
 ## Accessing the Brokers
@@ -82,17 +82,17 @@ helm install my-danube-broker myrepo/danube-broker-helm-chart --set broker.repli
 To access the broker service, you can use port forwarding:
 
 ```sh
-kubectl port-forward svc/my-danube-broker-broker 6650:6650
+kubectl port-forward svc/my-danube-cluster-broker 6650:6650
 ```
 
 Then you can connect to the broker at `localhost:6650`.
 
 ## Uninstallation
 
-To uninstall the `my-danube-broker` release:
+To uninstall the `my-danube-cluster` release:
 
 ```sh
-helm uninstall my-danube-broker
+helm uninstall my-danube-cluster
 ```
 
 This command removes all the Kubernetes components associated with the chart and deletes the release.
