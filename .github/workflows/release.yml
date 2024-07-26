@@ -1,0 +1,43 @@
+name: Release Charts
+
+on:
+  push:
+    branches:
+      - main  # or the default branch of your repo
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.5.4
+
+      - name: Install Chart Releaser
+        run: |
+          mkdir -p $HOME/bin
+          curl -LO https://github.com/helm/chart-releaser/releases/download/v1.2.1/chart-releaser_1.2.1_linux_amd64.tar.gz
+          tar -zxvf chart-releaser_1.2.1_linux_amd64.tar.gz
+          mv cr $HOME/bin/cr
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Run chart-releaser
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cr upload -o danrusei -r your-repository -c https://github.com/danrusei/danube_helm/releases/download/
+          cr index -o danrusei -r your-repository -c https://github.com/danrusei/danube_helm/releases/download/ -i index.yaml
+
+      - name: Commit index.yaml
+        run: |
+          git config --global user.email "dan.rusei@gmail.com"
+          git config --global user.name "danrusei w"
+          git checkout gh-pages
+          cp index.yaml .
+          git add index.yaml
+          git commit -m "Update index.yaml"
+          git push origin gh-pages
