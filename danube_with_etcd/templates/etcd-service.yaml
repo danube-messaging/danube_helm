@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: { { include "etcd.fullname" . } }
+  name: {{ include "broker.fullname" . }}-etcd
   labels:
-    app: etcd
+    app: {{ include "broker.name" . }}-etcd
+    release: {{ .Release.Name }}
 spec:
-  type: { { .Values.etcd.service.type } }
+  type: {{ .Values.etcd.service.type }}
   ports:
-    - port: { { .Values.etcd.service.port } }
-      targetPort: 2379
+    - port: {{ .Values.etcd.service.port }}
+      targetPort: {{ .Values.etcd.service.port }}
   selector:
-    app: etcd
+    app: {{ include "broker.name" . }}-etcd
+    release: {{ .Release.Name }}

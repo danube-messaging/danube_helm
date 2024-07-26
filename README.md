@@ -1,6 +1,6 @@
-# Danube Broker Helm Chart
+# Danube Cluster Helm Chart
 
-This Helm chart deploys the Danube Broker and ETCD instances in the same namespace.
+This Helm chart deploys the Danube Cluster with ETCD as metadata storage in the same namespace.
 
 ## Prerequisites
 

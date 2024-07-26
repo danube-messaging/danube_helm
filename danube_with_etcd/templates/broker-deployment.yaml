@@ -1,38 +1,43 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: { { include "broker.fullname" . } }
+  name: {{ include "broker.fullname" . }}
   labels:
-    app: broker
+    app: {{ include "broker.name" . }}
+    chart: {{ include "broker.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 spec:
-  replicas: { { .Values.broker.replicaCount } }
+  replicas: {{ .Values.broker.replicaCount }}
   selector:
     matchLabels:
-      app: broker
+      app: {{ include "broker.name" . }}
+      release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: broker
+        app: {{ include "broker.name" . }}
+        release: {{ .Release.Name }}
     spec:
       containers:
-        - name: broker
+        - name: {{ .Chart.Name }}
           image: "{{ .Values.broker.image.repository }}:{{ .Values.broker.image.tag }}"
-          imagePullPolicy: { { .Values.broker.image.pullPolicy } }
+          imagePullPolicy: {{ .Values.broker.image.pullPolicy }}
           ports:
-            - containerPort: { { .Values.broker.service.port } }
+            - containerPort: {{ .Values.broker.service.port }}
           env:
             - name: RUST_LOG
-              value: { { .Values.broker.env.RUST_LOG } }
+              value: {{ .Values.broker.env.RUST_LOG }}
             - name: BROKER_ADDR
-              value: { { .Values.broker.brokerAddr } }
+              value: {{ .Values.broker.brokerAddr }}
             - name: CLUSTER_NAME
-              value: { { .Values.broker.clusterName } }
+              value: {{ .Values.broker.clusterName }}
             - name: META_STORE_ADDR
-              value: { { .Values.broker.metaStoreAddr } }
+              value: {{ .Values.broker.metaStoreAddr }}
           resources:
             limits:
-              cpu: { { .Values.broker.resources.limits.cpu } }
-              memory: { { .Values.broker.resources.limits.memory } }
+              cpu: {{ .Values.broker.resources.limits.cpu }}
+              memory: {{ .Values.broker.resources.limits.memory }}
             requests:
-              cpu: { { .Values.broker.resources.requests.cpu } }
-              memory: { { .Values.broker.resources.requests.memory } }
+              cpu: {{ .Values.broker.resources.requests.cpu }}
+              memory: {{ .Values.broker.resources.requests.memory }}

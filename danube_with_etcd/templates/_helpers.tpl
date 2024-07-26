@@ -1,7 +1,16 @@
-{{- define "etcd.fullname" -}}
-{{- printf "%s-etcd" .Release.Name -}}
+{{- define "broker.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "broker.fullname" -}}
-{{- printf "%s-broker" .Release.Name -}}
+{{- if .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "broker.chart" -}}
+{{- .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}

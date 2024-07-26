@@ -19,7 +19,7 @@ etcd:
 broker:
   replicaCount: 1
   image:
-    repository: ghcr.io/your-username/danube-broker
+    repository: ghcr.io/danrusei/danube
     tag: latest
     pullPolicy: IfNotPresent
   service:
