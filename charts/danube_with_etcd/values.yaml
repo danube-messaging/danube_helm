@@ -5,6 +5,7 @@ replicaCount: 1
 
 # ETCD configuration
 etcd:
+  name: danube-etcd
   enabled: true
   replicaCount: 1
   image:
@@ -17,6 +18,7 @@ etcd:
 
 # Broker configuration
 broker:
+  name: danube
   replicaCount: 1
   image:
     repository: ghcr.io/danrusei/danube-broker

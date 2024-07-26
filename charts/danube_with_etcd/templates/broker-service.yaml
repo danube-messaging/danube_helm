@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "broker.fullname" . }}
+  name: {{ .Values.broker.name }}
   labels:
     app: broker
 spec:

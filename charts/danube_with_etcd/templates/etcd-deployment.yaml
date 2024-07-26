@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "broker.fullname" . }}-etcd
+  name: {{ .Values.etcd.name }}
   labels:
-    app: {{ include "broker.name" . }}-etcd
+    app: {{ .Values.etcd.name }}
     chart: {{ include "broker.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -11,12 +11,12 @@ spec:
   replicas: {{ .Values.etcd.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "broker.name" . }}-etcd
+      app: {{ .Values.etcd.name }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ include "broker.name" . }}-etcd
+        app: {{ .Values.etcd.name }}
         release: {{ .Release.Name }}
     spec:
       containers:
