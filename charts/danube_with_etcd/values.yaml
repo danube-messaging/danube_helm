@@ -38,4 +38,3 @@ broker:
     RUST_LOG: danube_broker=trace
   brokerAddr: "0.0.0.0:6650"
   clusterName: "MY_CLUSTER"
-  metaStoreAddr: "etcd:2379"

@@ -16,6 +16,12 @@
 {{- printf "%s-%s" $releaseName $etcdName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{- define "etcd.addr" -}}
+{{- $etcdName := include "etcd.name" . -}}
+{{- $etcdPort := .Values.etcd.service.port | default "2379" -}}  # Default port if etcd.port is not set
+{{- printf "%s:%s" $etcdName $etcdPort -}}
+{{- end -}}
+
 {{- define "broker.chart" -}}
 {{- .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end -}}

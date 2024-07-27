@@ -33,7 +33,14 @@ spec:
             - name: CLUSTER_NAME
               value: {{ .Values.broker.clusterName }}
             - name: META_STORE_ADDR
-              value: {{ .Values.broker.metaStoreAddr }}
+              value: {{ include "etcd.addr" . }}
+          args:
+            - "--broker-addr"
+            - "{{ .Values.broker.brokerAddr }}"
+            - "--cluster-name"
+            - "{{ .Values.broker.clusterName }}"
+            - "--meta-store-addr"
+            - "{{ include "etcd.addr" . }}"
           resources:
             limits:
               cpu: {{ .Values.broker.resources.limits.cpu }}
