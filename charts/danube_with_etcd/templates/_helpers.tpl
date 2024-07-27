@@ -11,15 +11,15 @@
 {{- $releaseName := .Release.Name -}}
 {{- $etcdName := .Values.etcd.name -}}
 {{- if not $etcdName -}}
-{{- $brokerName = "etcd" -}}  # Fallback if etcd.name is not set
+{{- $etcdName = "etcd" -}}  # Fallback if etcd.name is not set
 {{- end -}}
 {{- printf "%s-%s" $releaseName $etcdName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "etcd.addr" -}}
 {{- $etcdName := include "etcd.name" . -}}
-{{- $etcdPort := .Values.etcd.service.port | default "2379" -}}  # Default port if etcd.port is not set
-{{- printf "http://%s:%s" $etcdName $etcdPort -}}
+{{- $etcdPort := .Values.etcd.service.port | default "2379" -}}
+{{ $etcdName }}:{{ $etcdPort }}
 {{- end -}}
 
 {{- define "broker.chart" -}}
