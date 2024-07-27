@@ -3,4 +3,4 @@
   kubectl get pods -l app=broker
 
 2. To access the Broker service, you can use the following command:
-  kubectl port-forward svc/{{ include "broker.fullname" . }} 6650:6650
+  kubectl port-forward svc/{{ include "broker.name" . }} 6650:6650

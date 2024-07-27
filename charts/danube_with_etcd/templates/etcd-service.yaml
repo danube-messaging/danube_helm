@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.etcd.name }}
+  name:  {{ include "etcd.name" . }}
   labels:
-    app: {{ .Values.etcd.name }}
+    app:  {{ include "etcd.name" . }}
     release: {{ .Release.Name }}
 spec:
   type: {{ .Values.etcd.service.type }}
@@ -11,5 +11,5 @@ spec:
     - port: {{ .Values.etcd.service.port }}
       targetPort: {{ .Values.etcd.service.port }}
   selector:
-    app: {{ .Values.etcd.name }}
+    app:  {{ include "etcd.name" . }}
     release: {{ .Release.Name }}

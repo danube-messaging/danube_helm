@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.broker.name }}
+  name: {{ include "broker.name" . }}
   labels:
-    app: {{ .Values.broker.name }}
+    app: {{ include "broker.name" . }}
     chart: {{ include "broker.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -11,12 +11,12 @@ spec:
   replicas: {{ .Values.broker.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Values.broker.name }}
+      app: {{ include "broker.name" . }}
       release: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ .Values.broker.name }}
+        app: {{ include "broker.name" . }}
         release: {{ .Release.Name }}
     spec:
       containers:

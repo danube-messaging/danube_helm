@@ -1,14 +1,19 @@
 {{- define "broker.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- $releaseName := .Release.Name -}}
+{{- $brokerName := .Values.broker.name -}}
+{{- if not $brokerName -}}
+{{- $brokerName = "danube-broker" -}}  # Fallback if broker.name is not set
+{{- end -}}
+{{- printf "%s-%s" $releaseName $brokerName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "broker.fullname" -}}
-{{- if .Values.fullnameOverride -}}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $name := default .Chart.Name .Values.nameOverride -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- define "etcd.name" -}}
+{{- $releaseName := .Release.Name -}}
+{{- $etcdName := .Values.etcd.name -}}
+{{- if not $etcdName -}}
+{{- $brokerName = "etcd" -}}  # Fallback if etcd.name is not set
 {{- end -}}
+{{- printf "%s-%s" $releaseName $etcdName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "broker.chart" -}}
