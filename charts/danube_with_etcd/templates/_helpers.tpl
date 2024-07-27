@@ -19,7 +19,7 @@
 {{- define "etcd.addr" -}}
 {{- $etcdName := include "etcd.name" . -}}
 {{- $etcdPort := .Values.etcd.service.port | default "2379" -}}  # Default port if etcd.port is not set
-{{- printf "%s:%s" $etcdName $etcdPort -}}
+{{- printf "http://%s:%s" $etcdName $etcdPort -}}
 {{- end -}}
 
 {{- define "broker.chart" -}}
