@@ -1,23 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "broker.name" . }}-{{ .Release.Revision }}
+  name: {{ include "broker.name" . }}-{{ .Values.broker.instance }}
   labels:
     app: {{ include "broker.name" . }}
-    chart: {{ include "broker.chart" . }}
-    release: {{ .Release.Name }}
-    heritage: {{ .Release.Service }}
+    instance: {{ .Values.broker.instance }}
 spec:
-  replicas: {{ .Values.broker.replicaCount }}
+  replicas: 1 # One Pod per broker instance
   selector:
     matchLabels:
       app: {{ include "broker.name" . }}
-      release: {{ .Release.Name }}
+      instance: {{ .Values.broker.instance }}
   template:
     metadata:
       labels:
         app: {{ include "broker.name" . }}
-        release: {{ .Release.Name }}
+        instance: {{ .Values.broker.instance }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -27,11 +25,11 @@ spec:
           args: ["--config-file", "/etc/danube_broker.yml"]
           ports:
             - containerPort: {{ .Values.broker.service.brokerPort }}
-              name: broker grpc
+              name: brokerPort
             - containerPort: {{ .Values.broker.service.adminPort }}
-              name: admin api
+              name: adminPort
             - containerPort: {{ .Values.broker.service.promPort }}
-              name: prometheus exporter
+              name: prometheusPort
           volumeMounts:
             - name: config-volume
               mountPath: "/etc/danube_broker.yml"

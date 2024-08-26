@@ -9,15 +9,15 @@ spec:
   rules:
     {{- range $index, $host := .Values.ingress.hosts }}
     - host: {{ $host.host }}  # Host-based routing
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "broker.name" $ }}-{{ $index }}  # Unique service name for each broker
-                port:
-                  number: {{ $.Values.broker.service.grpcPort }}  # Use $. to access the root context
+  http:
+    paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "broker.serviceName" (printf "%s-%s" (include "broker.name" .) (index .Values.broker.instances $index).name) }}
+            port:
+              number: {{ .Values.broker.service.brokerPort }}
     {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
