@@ -1,13 +1,20 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "broker.name" . }}
+  name: {{ include "broker.name" . }}-{{ .Release.Revision }}
   labels:
     app: {{ include "broker.name" . }}
 spec:
   type: {{ .Values.broker.service.type }}
   ports:
-    - port: {{ .Values.broker.service.port }}
-      targetPort: {{ .Values.broker.service.port }}
+    - name: brokerPort
+      port: {{ .Values.broker.service.brokerPort }}
+      targetPort: {{ .Values.broker.service.brokerPort }}
+    - name: adminPort
+      port: {{ .Values.broker.service.adminPort }}
+      targetPort: {{ .Values.broker.service.adminPort }}
+    - name: prometheus port
+      port: {{ .Values.broker.service.promPort }}
+      targetPort: {{ .Values.broker.service.promPort }}
   selector:
     app: {{ include "broker.name" . }}

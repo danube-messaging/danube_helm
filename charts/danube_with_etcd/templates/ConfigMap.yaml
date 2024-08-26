@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: danube-broker-config
+data:
+  danube_broker.yml: |
+    {{ .Values.brokerConfig.configFile | nindent 4 }}

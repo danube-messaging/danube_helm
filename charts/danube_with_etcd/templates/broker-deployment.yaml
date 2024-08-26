@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "broker.name" . }}
+  name: {{ include "broker.name" . }}-{{ .Release.Revision }}
   labels:
     app: {{ include "broker.name" . }}
     chart: {{ include "broker.chart" . }}
@@ -23,24 +23,26 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.broker.image.repository }}:{{ .Values.broker.image.tag }}"
           imagePullPolicy: {{ .Values.broker.image.pullPolicy }}
+          command: ["/usr/local/bin/danube-broker"]
+          args: ["--config-file", "/etc/danube_broker.yml"]
           ports:
-            - containerPort: {{ .Values.broker.service.port }}
+            - containerPort: {{ .Values.broker.service.brokerPort }}
+              name: broker grpc
+            - containerPort: {{ .Values.broker.service.adminPort }}
+              name: admin api
+            - containerPort: {{ .Values.broker.service.promPort }}
+              name: prometheus exporter
+          volumeMounts:
+            - name: config-volume
+              mountPath: "/etc/danube_broker.yml"
+              subPath: "danube_broker.yml"
           env:
             - name: RUST_LOG
               value: {{ .Values.broker.env.RUST_LOG }}
             - name: BROKER_ADDR
               value: {{ .Values.broker.brokerAddr }}
-            - name: CLUSTER_NAME
-              value: {{ .Values.broker.clusterName }}
             - name: META_STORE_ADDR
               value: {{ include "etcd.addr" . }}
-          args:
-            - "--broker-addr"
-            - "{{ .Values.broker.brokerAddr }}"
-            - "--cluster-name"
-            - "{{ .Values.broker.clusterName }}"
-            - "--meta-store-addr"
-            - "{{ include "etcd.addr" . }}"
           resources:
             limits:
               cpu: {{ .Values.broker.resources.limits.cpu }}
@@ -48,3 +50,7 @@ spec:
             requests:
               cpu: {{ .Values.broker.resources.requests.cpu }}
               memory: {{ .Values.broker.resources.requests.memory }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: danube-broker-config
