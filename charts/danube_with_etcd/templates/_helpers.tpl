@@ -1,15 +1,14 @@
 {{- define "broker.name" -}}
-{{- $releaseName := .Release.Name -}}
-{{- if not $releaseName -}}
-{{- $releaseName = "default-release" -}}  # Fallback if etcd.name is not set
-{{- end -}}  
 {{- $brokerName := .Values.broker.name -}}
-{{- printf "%s-%s" $releaseName $brokerName | trunc 63 | trimSuffix "-" -}}
+{{- if not $brokerName -}}
+{{- $brokerName = "danube-broker" -}}  # Fallback if broker.name is not set
+{{- end -}}
+{{- printf "%s" $brokerName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "broker.serviceName" -}}
 {{- $serviceName := include "broker.name" . -}}
-{{- $instanceName := .instance.name -}}  # Access the instance name directly from the instance object
+{{- $instanceName := .instance.name -}}
 {{- printf "%s-%s" $serviceName $instanceName | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 

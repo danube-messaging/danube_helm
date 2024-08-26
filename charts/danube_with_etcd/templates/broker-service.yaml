@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "broker.serviceName" . }}
+  name: {{ include "broker.serviceName" (dict "Values" .Values "instance" .) }}
   labels:
     app: {{ include "broker.name" . }}
-    instance: {{ .Values.broker.instance }}
+    instance: {{ .name }}
 spec:
   type: {{ .Values.broker.service.type }}
   ports:
@@ -19,4 +19,4 @@ spec:
       targetPort: {{ .Values.broker.service.promPort }}
   selector:
     app: {{ include "broker.name" . }}
-    instance: {{ .Values.broker.instance }}
+    instance: {{ .name }}

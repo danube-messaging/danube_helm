@@ -6,7 +6,7 @@ metadata:
     app: {{ include "broker.name" . }}
     instance: {{ .Values.broker.instance }}
 spec:
-  replicas: 1 # One Pod per broker instance
+  replicas: 1
   selector:
     matchLabels:
       app: {{ include "broker.name" . }}

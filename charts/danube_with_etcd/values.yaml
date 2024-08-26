@@ -6,12 +6,12 @@ replicaCount: 1
 # Ingress configuration
 ingress:
   enabled: true
-  className: "nginx" # Specify the ingress class (nginx by default)
+  className: "nginx"
   hosts:
-    - host: broker1.example.com # Hostname for broker1
-    - host: broker2.example.com # Hostname for broker2
-    - host: broker3.example.com # Hostname for broker3
-  tls: [] # Add TLS configuration if required
+    - host: broker1.example.com
+    - host: broker2.example.com
+    - host: broker3.example.com
+  tls: []
 
 # ETCD configuration
 etcd:
@@ -52,7 +52,7 @@ broker:
   env:
     RUST_LOG: danube_broker=info
 
-  # Broker configuration file content
+# Broker configuration file content
 brokerConfig:
   configFile: |
     cluster_name: "MY_CLUSTER"

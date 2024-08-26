@@ -3,21 +3,22 @@ kind: Ingress
 metadata:
   name: {{ include "broker.name" . }}-ingress
   annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"  # Enable gRPC support
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
 spec:
   ingressClassName: {{ .Values.ingress.className | default "nginx" }}
   rules:
     {{- range $index, $host := .Values.ingress.hosts }}
-    - host: {{ $host.host }}  # Host-based routing
-  http:
-    paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ include "broker.serviceName" (printf "%s-%s" (include "broker.name" .) (index .Values.broker.instances $index).name) }}
-            port:
-              number: {{ .Values.broker.service.brokerPort }}
+    - host: {{ $host.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                # Use $ to reference the top-level context, so that .Values still works correctly
+                name: {{ printf "%s-%s" $.Values.broker.name (index $.Values.broker.instances $index).name | trunc 63 | trimSuffix "-" }}
+                port:
+                  number: {{ $.Values.broker.service.brokerPort }}
     {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
