@@ -1,33 +1,82 @@
-# Setup Danube on the k8s cluster using [kind](https://kind.sigs.k8s.io/)
+# Setup Danube on the kubernetes cluster
 
-## Create the cluster
+The below process shows how to install Danube on the local machine
+
+## Create the cluster with [kind](https://kind.sigs.k8s.io/)
+
+[Kind](https://github.com/kubernetes-sigs/kind) is a tool for running local Kubernetes clusters using Docker container “nodes”.
+
+```bash
+kind create cluster
+Creating cluster "kind" ...
+ ✓ Ensuring node image (kindest/node:v1.30.0) 🖼
+ ✓ Preparing nodes 📦  
+ ✓ Writing configuration 📜 
+ ✓ Starting control-plane 🕹️ 
+ ✓ Installing CNI 🔌 
+ ✓ Installing StorageClass 💾 
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-kind
+```
 
 ## Install the Ngnix Ingress controller
 
-## Install Danube cluster
+Using the Official NGINX Ingress Helm Chart
 
-make the changes.. (how to modify the name of the brokers and others)
-
-## Expose the NGINX Ingress Controller Ports on Localhost
-
-Since your NGINX Ingress controller is not exposed externally, you need to expose it using port forwarding. The key point is that the Ingress controller needs to be exposed on the HTTP/HTTPS ports (usually 80 and 443) since it does the routing.
-
-You can expose port 80 using the following command:
+You can install the NGINX Ingress Controller using Helm:
 
 ```bash
-kubectl port-forward --namespace <nginx_namespace> service/nginx-ingress-ingress-nginx-controller 80:80
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
 ```
 
-## Use Proper DNS Resolution
-
-Ensure that your /etc/hosts file contains the correct DNS entries mapping the broker hostnames to 127.0.0.1:
+You can expose the NGINX Ingress controller using a NodePort service so that traffic from the local machine (outside the cluster) can reach the Ingress controller.
 
 ```bash
-sudo nano /etc/hosts
+helm install nginx-ingress ingress-nginx/ingress-nginx \
+  --set controller.service.type=NodePort \
+  --set controller.service.ports.http=6650
 ```
 
-Add the following lines:
+You can find out which port is assigned by running
 
 ```bash
-127.0.0.1 broker1.example.com broker2.example.com broker3.example.com
+kubectl get svc -n ingress-nginx
+```
+
+This will install the NGINX Ingress Controller into the cluster.
+
+## Install Danube PubSub
+
+First, add the repository to your Helm client:
+
+```sh
+helm repo add danube https://danrusei.github.io/danube_helm
+helm repo update
+```
+
+You can install the chart with the release name `my-danube-cluster` using the following command:
+
+```sh
+helm install my-danube-cluster danube/danube-helm-chart
+```
+
+You can further customize the installation, check the readme file. I'm installing it using the default configuration with 3 danube brokers.
+
+## Setup in order to communicate with cluster PubSub brokers
+
+```bash
+kubectl get nodes -o wide
+NAME                 STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION       CONTAINER-RUNTIME
+kind-control-plane   Ready    control-plane   53m   v1.30.0   172.20.0.2    <none>        Debian GNU/Linux 12 (bookworm)   5.15.0-118-generic   containerd://1.7.15
+```
+
+Use the **INTERNAL-IP** to route the traffic to broker hosts. Add the following in the hosts file, but make sure you match the number and the name of the brokers from the helm values.yaml file.
+
+```bash
+cat /etc/hosts
+172.20.0.2 broker1.example.com broker2.example.com broker3.example.com
+
 ```
