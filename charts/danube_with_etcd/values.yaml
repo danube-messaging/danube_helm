@@ -28,7 +28,8 @@ etcd:
 
 # Broker configuration
 broker:
-  name: danube-broker
+  name: danube
+  adminHost: broker1.example.com
   instances:
     - name: broker1
     - name: broker2

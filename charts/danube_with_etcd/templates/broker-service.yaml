@@ -1,22 +1,24 @@
+{{- range .Values.broker.instances }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "broker.serviceName" (dict "Values" .Values "instance" .) }}
+  name: {{ include "broker.name" $ }}-{{ .name }}
   labels:
-    app: {{ include "broker.name" . }}
+    app: {{ include "broker.name" $ }}
     instance: {{ .name }}
 spec:
-  type: {{ .Values.broker.service.type }}
+  type: {{ $.Values.broker.service.type }}
   ports:
     - name: brokerPort
-      port: {{ .Values.broker.service.brokerPort }}
-      targetPort: {{ .Values.broker.service.brokerPort }}
+      port: {{ $.Values.broker.service.brokerPort }}
+      targetPort: {{ $.Values.broker.service.brokerPort }}
     - name: adminPort
-      port: {{ .Values.broker.service.adminPort }}
-      targetPort: {{ .Values.broker.service.adminPort }}
+      port: {{ $.Values.broker.service.adminPort }}
+      targetPort: {{ $.Values.broker.service.adminPort }}
     - name: prometheusPort
-      port: {{ .Values.broker.service.promPort }}
-      targetPort: {{ .Values.broker.service.promPort }}
+      port: {{ $.Values.broker.service.promPort }}
+      targetPort: {{ $.Values.broker.service.promPort }}
   selector:
-    app: {{ include "broker.name" . }}
+    app: {{ include "broker.name" $ }}
     instance: {{ .name }}
+{{- end }}

@@ -1,34 +1,35 @@
+{{- range .Values.broker.instances }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "broker.name" . }}-{{ .Values.broker.instance }}
+  name: {{ include "broker.name" $ }}-{{ .name }}
   labels:
-    app: {{ include "broker.name" . }}
-    instance: {{ .Values.broker.instance }}
+    app: {{ include "broker.name" $ }}
+    instance: {{ .name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ include "broker.name" . }}
-      instance: {{ .Values.broker.instance }}
+      app: {{ include "broker.name" $ }}
+      instance: {{ .name }}
   template:
     metadata:
       labels:
-        app: {{ include "broker.name" . }}
-        instance: {{ .Values.broker.instance }}
+        app: {{ include "broker.name" $ }}
+        instance: {{ .name }}
     spec:
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.broker.image.repository }}:{{ .Values.broker.image.tag }}"
-          imagePullPolicy: {{ .Values.broker.image.pullPolicy }}
+        - name: {{ $.Chart.Name }}
+          image: "{{ $.Values.broker.image.repository }}:{{ $.Values.broker.image.tag }}"
+          imagePullPolicy: {{ $.Values.broker.image.pullPolicy }}
           command: ["/usr/local/bin/danube-broker"]
           args: ["--config-file", "/etc/danube_broker.yml"]
           ports:
-            - containerPort: {{ .Values.broker.service.brokerPort }}
+            - containerPort: {{ $.Values.broker.service.brokerPort }}
               name: brokerPort
-            - containerPort: {{ .Values.broker.service.adminPort }}
+            - containerPort: {{ $.Values.broker.service.adminPort }}
               name: adminPort
-            - containerPort: {{ .Values.broker.service.promPort }}
+            - containerPort: {{ $.Values.broker.service.promPort }}
               name: prometheusPort
           volumeMounts:
             - name: config-volume
@@ -36,19 +37,22 @@ spec:
               subPath: "danube_broker.yml"
           env:
             - name: RUST_LOG
-              value: {{ .Values.broker.env.RUST_LOG }}
+              value: {{ $.Values.broker.env.RUST_LOG }}
             - name: BROKER_ADDR
-              value: {{ .Values.broker.brokerAddr }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
             - name: META_STORE_ADDR
-              value: {{ include "etcd.addr" . }}
+              value: {{ include "etcd.addr" $ }}
           resources:
             limits:
-              cpu: {{ .Values.broker.resources.limits.cpu }}
-              memory: {{ .Values.broker.resources.limits.memory }}
+              cpu: {{ $.Values.broker.resources.limits.cpu }}
+              memory: {{ $.Values.broker.resources.limits.memory }}
             requests:
-              cpu: {{ .Values.broker.resources.requests.cpu }}
-              memory: {{ .Values.broker.resources.requests.memory }}
+              cpu: {{ $.Values.broker.resources.requests.cpu }}
+              memory: {{ $.Values.broker.resources.requests.memory }}
       volumes:
         - name: config-volume
           configMap:
             name: danube-broker-config
+{{- end }}

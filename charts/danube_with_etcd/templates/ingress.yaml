@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "broker.name" . }}-ingress
+  name: {{ include "broker.name" $ }}-ingress
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
 spec:
@@ -15,14 +15,28 @@ spec:
             pathType: Prefix
             backend:
               service:
-                # Use $ to reference the top-level context, so that .Values still works correctly
-                name: {{ printf "%s-%s" $.Values.broker.name (index $.Values.broker.instances $index).name | trunc 63 | trimSuffix "-" }}
+                name: {{ printf "%s-%s" (include "broker.name" $) (index $.Values.broker.instances $index).name | trunc 63 | trimSuffix "-" }}
                 port:
                   number: {{ $.Values.broker.service.brokerPort }}
     {{- end }}
-  {{- if .Values.ingress.tls }}
+
+    # Admin API routing for all brokers
+    - host: {{ .Values.broker.adminHost | default "admin.example.com" }}
+      http:
+        paths:
+          {{- range $instance := .Values.broker.instances }}
+          - path: /{{ $instance.name }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ printf "%s-%s" (include "broker.name" $) $instance.name | trunc 63 | trimSuffix "-" }}
+                port:
+                  number: {{ $.Values.broker.service.adminPort }}
+          {{- end }}
+          
+  {{- if $.Values.ingress.tls }}
   tls:
-    {{- range .Values.ingress.tls }}
+    {{- range $.Values.ingress.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . }}
@@ -30,3 +44,5 @@ spec:
       secretName: {{ .secretName }}
     {{- end }}
   {{- end }}
+
+
