@@ -1,4 +1,5 @@
 {{- range .Values.broker.instances }}
+---
 apiVersion: v1
 kind: Service
 metadata:
