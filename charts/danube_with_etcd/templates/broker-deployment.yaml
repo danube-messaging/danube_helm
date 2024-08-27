@@ -26,11 +26,11 @@ spec:
           args: ["--config-file", "/etc/danube_broker.yml"]
           ports:
             - containerPort: {{ $.Values.broker.service.brokerPort }}
-              name: brokerPort
+              name: broker-port
             - containerPort: {{ $.Values.broker.service.adminPort }}
-              name: adminPort
+              name: admin-port
             - containerPort: {{ $.Values.broker.service.promPort }}
-              name: prometheusPort
+              name: prometheus-port
           volumeMounts:
             - name: config-volume
               mountPath: "/etc/danube_broker.yml"

@@ -9,13 +9,13 @@ metadata:
 spec:
   type: {{ $.Values.broker.service.type }}
   ports:
-    - name: brokerPort
+    - name: broker-port
       port: {{ $.Values.broker.service.brokerPort }}
       targetPort: {{ $.Values.broker.service.brokerPort }}
-    - name: adminPort
+    - name: admin-port
       port: {{ $.Values.broker.service.adminPort }}
       targetPort: {{ $.Values.broker.service.adminPort }}
-    - name: prometheusPort
+    - name: prometheus-port
       port: {{ $.Values.broker.service.promPort }}
       targetPort: {{ $.Values.broker.service.promPort }}
   selector:
