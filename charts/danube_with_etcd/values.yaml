@@ -61,7 +61,7 @@ brokerConfig:
     broker_port: 6650
     admin_port: 50051
     prom_port: 9040
-    meta_store_host: "etcd"
+    meta_store_host: "my-danube-cluster-etcd"
     meta_store_port: 2379
     bootstrap_namespaces: ["default"]
     policies:
