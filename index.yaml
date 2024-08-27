@@ -3,6 +3,15 @@ entries:
   danube-helm-chart:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2024-08-27T08:11:59.045954501Z"
+    description: A Helm chart for deploying Danube Broker and ETCD instances
+    digest: 8a93873216558e8846b3f09d7cd7212c687dc86a3cfda38594d75dc6ae4ae4c7
+    name: danube-helm-chart
+    urls:
+    - https://github.com/danrusei/danube_helm/releases/download/danube-helm-chart-0.1.7/danube-helm-chart-0.1.7.tgz
+    version: 0.1.7
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2024-08-27T07:40:22.073444816Z"
     description: A Helm chart for deploying Danube Broker and ETCD instances
     digest: a8373986f76a41c3a132bf68da8e13622b7ad8c747cce677a133085ffe418fb1
@@ -37,4 +46,4 @@ entries:
     urls:
     - https://github.com/danrusei/danube_helm/releases/download/danube-helm-chart-0.1.2/danube-helm-chart-0.1.2.tgz
     version: 0.1.2
-generated: "2024-08-27T07:40:22.07346842Z"
+generated: "2024-08-27T08:11:59.045978776Z"
