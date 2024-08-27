@@ -80,3 +80,19 @@ cat /etc/hosts
 172.20.0.2 broker1.example.com broker2.example.com broker3.example.com
 
 ```
+
+## Inspect the etcd instance (optional)
+
+If you want to connect from your local machine, use kubectl port-forward to forward the etcd port to your local machine:
+
+Port Forward etcd Service:
+
+```bash
+kubectl port-forward service/my-danube-cluster-etcd 2379:2379
+```
+
+Once port forwarding is set up, you can run etcdctl commands from your local machine:
+
+```bash
+etcdctl --endpoints=http://localhost:2379 watch --prefix /
+```
