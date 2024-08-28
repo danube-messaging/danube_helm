@@ -42,6 +42,7 @@ broker:
     brokerPort: 6650
     adminPort: 50051
     promPort: 9040
+    advertisedPort: 30115 # needed for NodePort
   resources:
     limits:
       cpu: 500m

@@ -139,7 +139,7 @@ spec:
           image: "ghcr.io/danrusei/danube-broker:latest"
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker1.example.com"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker1.example.com:30115"]
           ports:
             - containerPort: 6650
               name: broker-port
@@ -197,7 +197,7 @@ spec:
           image: "ghcr.io/danrusei/danube-broker:latest"
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker2.example.com"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker2.example.com:30115"]
           ports:
             - containerPort: 6650
               name: broker-port
@@ -255,7 +255,7 @@ spec:
           image: "ghcr.io/danrusei/danube-broker:latest"
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker3.example.com"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker3.example.com:30115"]
           ports:
             - containerPort: 6650
               name: broker-port
@@ -295,7 +295,7 @@ metadata:
   name: my-danube-cluster-etcd
   labels:
     app:  my-danube-cluster-etcd
-    chart: danube-helm-chart-0.1.4
+    chart: danube-helm-chart-0.1.5
     release: my-danube-cluster
     heritage: Helm
 spec:

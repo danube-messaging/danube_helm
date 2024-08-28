@@ -36,17 +36,21 @@ You can expose the NGINX Ingress controller using a NodePort service so that tra
 
 ```bash
 helm install nginx-ingress ingress-nginx/ingress-nginx \
-  --set controller.service.type=NodePort \
-  --set controller.service.ports.http=6650
+  --set controller.service.type=NodePort
 ```
 
 You can find out which port is assigned by running
 
 ```bash
-kubectl get svc -n ingress-nginx
+kubectl get svc
+
+NAME                                               TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+kubernetes                                         ClusterIP   10.96.0.1       <none>        443/TCP                      4m17s
+nginx-ingress-ingress-nginx-controller             NodePort    10.96.245.118   <none>        80:30115/TCP,443:30294/TCP   2m58s
+nginx-ingress-ingress-nginx-controller-admission   ClusterIP   10.96.169.82    <none>        443/TCP                      2m58s
 ```
 
-This will install the NGINX Ingress Controller into the cluster.
+If ngnix is running as NodePort (usually for testing), you need local port in this case **30115**, in order to provide to danube_helm installation.
 
 ## Install Danube PubSub
 

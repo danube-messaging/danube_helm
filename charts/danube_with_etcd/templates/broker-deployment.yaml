@@ -24,7 +24,7 @@ spec:
           image: "{{ $.Values.broker.image.repository }}:{{ $.Values.broker.image.tag }}"
           imagePullPolicy: {{ $.Values.broker.image.pullPolicy }}
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "{{ $instance.host }}"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "{{ $instance.host }}:{{ $.Values.broker.service.advertisedPort }}"]
           ports:
             - containerPort: {{ $.Values.broker.service.brokerPort }}
               name: broker-port
