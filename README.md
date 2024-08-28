@@ -77,15 +77,26 @@ Alternatively, you can specify individual values using the `--set` flag:
 helm install my-danube-cluster danube/danube-helm-chart --set broker.replicaCount=2 --set broker.brokerAddr="0.0.0.0:6651"
 ```
 
-## Accessing the Brokers
+## Resource consideration
 
-To access the broker service, you can use port forwarding:
+Pay attention to resource allocation, the default configuration is just OK for testing.
 
-```sh
-kubectl port-forward svc/my-danube-cluster-broker 6650:6650
-```
+For production environment you may want to increase.
 
-Then you can connect to the broker at `localhost:6650`.
+### Sizing for Production
+
+**Small to Medium Load**:
+
+CPU Requests: 500m to 1 CPU
+CPU Limits: 1 CPU to 2 CPUs
+Memory Requests: 512Mi to 1Gi
+Memory Limits: 1Gi to 2Gi
+
+**Heavy Load:**
+CPU Requests: 1 CPU to 2 CPUs
+CPU Limits: 2 CPUs to 4 CPUs
+Memory Requests: 1Gi to 2Gi
+Memory Limits: 2Gi to 4Gi
 
 ## Uninstallation
 
