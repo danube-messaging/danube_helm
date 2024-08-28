@@ -7,10 +7,6 @@ replicaCount: 1
 ingress:
   enabled: true
   className: "nginx"
-  hosts:
-    - host: broker1.example.com
-    - host: broker2.example.com
-    - host: broker3.example.com
   tls: []
 
 # ETCD configuration
@@ -32,8 +28,11 @@ broker:
   adminHost: broker1.example.com
   instances:
     - name: broker1
+      host: broker1.example.com
     - name: broker2
+      host: broker2.example.com
     - name: broker3
+      host: broker3.example.com
   image:
     repository: ghcr.io/danrusei/danube-broker
     tag: latest

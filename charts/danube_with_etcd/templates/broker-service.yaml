@@ -1,12 +1,12 @@
-{{- range .Values.broker.instances }}
+{{- range $instance := .Values.broker.instances }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "broker.name" $ }}-{{ .name }}
+  name: {{ include "broker.name" $ }}-{{ $instance.name }}
   labels:
     app: {{ include "broker.name" $ }}
-    instance: {{ .name }}
+    instance: {{ $instance.name }}
 spec:
   type: {{ $.Values.broker.service.type }}
   ports:
@@ -21,5 +21,5 @@ spec:
       targetPort: {{ $.Values.broker.service.promPort }}
   selector:
     app: {{ include "broker.name" $ }}
-    instance: {{ .name }}
+    instance: {{ $instance.name }}
 {{- end }}

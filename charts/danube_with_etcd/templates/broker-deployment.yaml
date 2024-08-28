@@ -1,30 +1,30 @@
-{{- range .Values.broker.instances }}
+{{- range $instance := .Values.broker.instances }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "broker.name" $ }}-{{ .name }}
+  name: {{ include "broker.name" $ }}-{{ $instance.name }}
   labels:
     app: {{ include "broker.name" $ }}
-    instance: {{ .name }}
+    instance: {{ $instance.name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: {{ include "broker.name" $ }}
-      instance: {{ .name }}
+      instance: {{ $instance.name }}
   template:
     metadata:
       labels:
         app: {{ include "broker.name" $ }}
-        instance: {{ .name }}
+        instance: {{ $instance.name }}
     spec:
       containers:
         - name: {{ $.Chart.Name }}
           image: "{{ $.Values.broker.image.repository }}:{{ $.Values.broker.image.tag }}"
           imagePullPolicy: {{ $.Values.broker.image.pullPolicy }}
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", $instance.host]
           ports:
             - containerPort: {{ $.Values.broker.service.brokerPort }}
               name: broker-port

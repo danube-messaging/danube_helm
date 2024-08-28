@@ -7,15 +7,15 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className | default "nginx" }}
   rules:
-    {{- range $index, $host := .Values.ingress.hosts }}
-    - host: {{ $host.host }}
+    {{- range $instance := .Values.broker.instances }}
+    - host: {{ $instance.host }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ printf "%s-%s" (include "broker.name" $) (index $.Values.broker.instances $index).name | trunc 63 | trimSuffix "-" }}
+                name: {{ printf "%s-%s" (include "broker.name" $) $instance.name | trunc 63 | trimSuffix "-" }}
                 port:
                   number: {{ $.Values.broker.service.brokerPort }}
     {{- end }}
