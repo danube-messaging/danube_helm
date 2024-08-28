@@ -29,9 +29,9 @@ data:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-release-name-danube-broker1
+  name: my-danube-cluster-danube-broker1
   labels:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker1
 spec:
   type: ClusterIP
@@ -46,16 +46,16 @@ spec:
       port: 9040
       targetPort: 9040
   selector:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker1
 ---
 # Source: danube-helm-chart/templates/broker-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-release-name-danube-broker2
+  name: my-danube-cluster-danube-broker2
   labels:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker2
 spec:
   type: ClusterIP
@@ -70,16 +70,16 @@ spec:
       port: 9040
       targetPort: 9040
   selector:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker2
 ---
 # Source: danube-helm-chart/templates/broker-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-release-name-danube-broker3
+  name: my-danube-cluster-danube-broker3
   labels:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker3
 spec:
   type: ClusterIP
@@ -94,44 +94,44 @@ spec:
       port: 9040
       targetPort: 9040
   selector:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker3
 ---
 # Source: danube-helm-chart/templates/etcd-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name:  my-release-name-etcd
+  name:  my-danube-cluster-etcd
   labels:
-    app:  my-release-name-etcd
-    release: my-release-name
+    app:  my-danube-cluster-etcd
+    release: my-danube-cluster
 spec:
   type: ClusterIP
   ports:
     - port: 2379
       targetPort: 2379
   selector:
-    app:  my-release-name-etcd
-    release: my-release-name
+    app:  my-danube-cluster-etcd
+    release: my-danube-cluster
 ---
 # Source: danube-helm-chart/templates/broker-deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-release-name-danube-broker1
+  name: my-danube-cluster-danube-broker1
   labels:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker1
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: my-release-name-danube
+      app: my-danube-cluster-danube
       instance: broker1
   template:
     metadata:
       labels:
-        app: my-release-name-danube
+        app: my-danube-cluster-danube
         instance: broker1
     spec:
       containers:
@@ -139,7 +139,7 @@ spec:
           image: "ghcr.io/danrusei/danube-broker:latest"
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker1.example.com"]
           ports:
             - containerPort: 6650
               name: broker-port
@@ -159,7 +159,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: META_STORE_ADDR
-              value: my-release-name-etcd:2379
+              value: my-danube-cluster-etcd:2379
           resources:
             limits:
               cpu: 500m
@@ -176,20 +176,20 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-release-name-danube-broker2
+  name: my-danube-cluster-danube-broker2
   labels:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker2
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: my-release-name-danube
+      app: my-danube-cluster-danube
       instance: broker2
   template:
     metadata:
       labels:
-        app: my-release-name-danube
+        app: my-danube-cluster-danube
         instance: broker2
     spec:
       containers:
@@ -197,7 +197,7 @@ spec:
           image: "ghcr.io/danrusei/danube-broker:latest"
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker2.example.com"]
           ports:
             - containerPort: 6650
               name: broker-port
@@ -217,7 +217,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: META_STORE_ADDR
-              value: my-release-name-etcd:2379
+              value: my-danube-cluster-etcd:2379
           resources:
             limits:
               cpu: 500m
@@ -234,20 +234,20 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-release-name-danube-broker3
+  name: my-danube-cluster-danube-broker3
   labels:
-    app: my-release-name-danube
+    app: my-danube-cluster-danube
     instance: broker3
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: my-release-name-danube
+      app: my-danube-cluster-danube
       instance: broker3
   template:
     metadata:
       labels:
-        app: my-release-name-danube
+        app: my-danube-cluster-danube
         instance: broker3
     spec:
       containers:
@@ -255,7 +255,7 @@ spec:
           image: "ghcr.io/danrusei/danube-broker:latest"
           imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/danube-broker"]
-          args: ["--config-file", "/etc/danube_broker.yml"]
+          args: ["--config-file", "/etc/danube_broker.yml", "--advertised-addr", "broker3.example.com"]
           ports:
             - containerPort: 6650
               name: broker-port
@@ -275,7 +275,7 @@ spec:
                 fieldRef:
                   fieldPath: status.podIP
             - name: META_STORE_ADDR
-              value: my-release-name-etcd:2379
+              value: my-danube-cluster-etcd:2379
           resources:
             limits:
               cpu: 500m
@@ -292,23 +292,23 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: my-release-name-etcd
+  name: my-danube-cluster-etcd
   labels:
-    app:  my-release-name-etcd
-    chart: danube-helm-chart-0.1.6
-    release: my-release-name
+    app:  my-danube-cluster-etcd
+    chart: danube-helm-chart-0.1.4
+    release: my-danube-cluster
     heritage: Helm
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app:  my-release-name-etcd
-      release: my-release-name
+      app:  my-danube-cluster-etcd
+      release: my-danube-cluster
   template:
     metadata:
       labels:
-        app:  my-release-name-etcd
-        release: my-release-name
+        app:  my-danube-cluster-etcd
+        release: my-danube-cluster
     spec:
       containers:
         - name: etcd
@@ -328,7 +328,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: my-release-name-danube-ingress
+  name: my-danube-cluster-danube-ingress
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
 spec:
@@ -341,7 +341,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: my-release-name-danube-broker1
+                name: my-danube-cluster-danube-broker1
                 port:
                   number: 6650
     - host: broker2.example.com
@@ -351,7 +351,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: my-release-name-danube-broker2
+                name: my-danube-cluster-danube-broker2
                 port:
                   number: 6650
     - host: broker3.example.com
@@ -361,7 +361,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: my-release-name-danube-broker3
+                name: my-danube-cluster-danube-broker3
                 port:
                   number: 6650
 
@@ -373,20 +373,20 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: my-release-name-danube-broker1
+                name: my-danube-cluster-danube-broker1
                 port:
                   number: 50051
           - path: /broker2
             pathType: Prefix
             backend:
               service:
-                name: my-release-name-danube-broker2
+                name: my-danube-cluster-danube-broker2
                 port:
                   number: 50051
           - path: /broker3
             pathType: Prefix
             backend:
               service:
-                name: my-release-name-danube-broker3
+                name: my-danube-cluster-danube-broker3
                 port:
                   number: 50051
