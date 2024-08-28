@@ -19,6 +19,10 @@ spec:
         app: {{ include "broker.name" $ }}
         instance: {{ $instance.name }}
     spec:
+      initContainers:
+        - name: wait-for-etcd
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 {{ include "etcd.name" $ }} {{ $.Values.etcd.service.port }}; do echo "waiting for etcd"; sleep 5; done']    
       containers:
         - name: {{ $.Chart.Name }}
           image: "{{ $.Values.broker.image.repository }}:{{ $.Values.broker.image.tag }}"

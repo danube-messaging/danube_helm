@@ -134,6 +134,10 @@ spec:
         app: my-danube-cluster-danube
         instance: broker1
     spec:
+      initContainers:
+        - name: wait-for-etcd
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 my-danube-cluster-etcd 2379; do echo "waiting for etcd"; sleep 5; done']    
       containers:
         - name: danube-helm-chart
           image: "ghcr.io/danrusei/danube-broker:latest"
@@ -192,6 +196,10 @@ spec:
         app: my-danube-cluster-danube
         instance: broker2
     spec:
+      initContainers:
+        - name: wait-for-etcd
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 my-danube-cluster-etcd 2379; do echo "waiting for etcd"; sleep 5; done']    
       containers:
         - name: danube-helm-chart
           image: "ghcr.io/danrusei/danube-broker:latest"
@@ -250,6 +258,10 @@ spec:
         app: my-danube-cluster-danube
         instance: broker3
     spec:
+      initContainers:
+        - name: wait-for-etcd
+          image: busybox
+          command: ['sh', '-c', 'until nc -z -v -w30 my-danube-cluster-etcd 2379; do echo "waiting for etcd"; sleep 5; done']    
       containers:
         - name: danube-helm-chart
           image: "ghcr.io/danrusei/danube-broker:latest"
@@ -295,7 +307,7 @@ metadata:
   name: my-danube-cluster-etcd
   labels:
     app:  my-danube-cluster-etcd
-    chart: danube-helm-chart-0.1.5
+    chart: danube-helm-chart-0.1.6
     release: my-danube-cluster
     heritage: Helm
 spec:

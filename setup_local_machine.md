@@ -64,8 +64,10 @@ helm repo update
 You can install the chart with the release name `my-danube-cluster` using the following command:
 
 ```sh
-helm install my-danube-cluster danube/danube-helm-chart
+helm install my-danube-cluster danube/danube-helm-chart --set broker.service.advertisedPort=30115
 ```
+
+The advertisedPort is used to allow the client to reach the brokers, through the ingress NodePort.
 
 You can further customize the installation, check the readme file. I'm installing it using the default configuration with 3 danube brokers.
 
