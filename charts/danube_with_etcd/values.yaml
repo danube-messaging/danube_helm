@@ -34,7 +34,7 @@ broker:
     - name: broker3
       host: broker3.example.com
   image:
-    repository: ghcr.io/danrusei/danube-broker
+    repository: ghcr.io/danube-messaging/danube-broker
     tag: latest
     pullPolicy: IfNotPresent
   service:
@@ -64,6 +64,13 @@ brokerConfig:
     meta_store_host: "my-danube-cluster-etcd"
     meta_store_port: 2379
     bootstrap_namespaces: ["default"]
+    storage:
+      type: "inmemory"
+      disk:
+        path: "./your_directory"
+      s3:
+        bucket: "your_s3_bucket"
+        region: "us-east-1"
     policies:
       max_producers_per_topic: 0
       max_subscriptions_per_topic: 0

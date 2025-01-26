@@ -14,7 +14,7 @@ This Helm chart deploys the Danube Cluster with ETCD as metadata storage in the 
 First, add the repository to your Helm client:
 
 ```sh
-helm repo add danube https://danrusei.github.io/danube_helm
+helm repo add danube https://danube-messaging.github.io/danube_helm
 helm repo update
 ```
 
