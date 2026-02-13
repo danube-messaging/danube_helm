@@ -24,7 +24,13 @@ spec:
           imagePullPolicy: {{ .Values.broker.image.pullPolicy }}
           args:
             - "--config-file"
-            - "/etc/danube/danube_broker.yml"
+            - "/etc/danube/{{ .Values.broker.config.fileName }}"
+            - "--broker-addr"
+            - "0.0.0.0:{{ .Values.broker.ports.client }}"
+            - "--admin-addr"
+            - "0.0.0.0:{{ .Values.broker.ports.admin }}"
+            - "--prom-exporter"
+            - "0.0.0.0:{{ .Values.broker.ports.prometheus }}"
             - "--advertised-addr"
             - "{{ tpl .Values.broker.externalAccess.advertisedAddrTemplate . }}"
           ports:
@@ -43,16 +49,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: BROKER_PORT
-              value: "{{ .Values.broker.ports.client }}"
             - name: ADVERTISED_PORT
               value: "{{ .Values.broker.externalAccess.advertisedPort }}"
             - name: RUST_LOG
               value: "{{ .Values.broker.env.RUST_LOG }}"
           volumeMounts:
             - name: config
-              mountPath: /etc/danube/danube_broker.yml
-              subPath: danube_broker.yml
+              mountPath: /etc/danube/{{ .Values.broker.config.fileName }}
+              subPath: {{ .Values.broker.config.fileName }}
             - name: data
               mountPath: {{ .Values.broker.persistence.mountPath }}
             {{- if and .Values.broker.tls.enabled .Values.broker.tls.secretName }}
@@ -77,7 +81,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "danube-core.broker.config" . }}
+            name: {{ required "broker.config.existingConfigMap is required" .Values.broker.config.existingConfigMap }}
         {{- if and .Values.broker.tls.enabled .Values.broker.tls.secretName }}
         - name: tls
           secret:

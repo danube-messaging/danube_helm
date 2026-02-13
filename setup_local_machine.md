@@ -60,10 +60,16 @@ For local development, install directly from the chart directory:
 
 ```sh
 # Minimal setup for testing (1 broker, no persistence)
-helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-minimal.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-minimal.yaml
 
 # Production setup (3 brokers, persistence enabled)
-helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-production.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-production.yaml
 ```
 
 ### Option 2: Install from Helm Repository (Production)
@@ -79,6 +85,13 @@ Then install the chart:
 
 ```sh
 helm install danube danube/danube-core
+```
+
+Create the broker ConfigMap before installation:
+
+```sh
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
 ```
 
 ### Configure External Access via NodePort

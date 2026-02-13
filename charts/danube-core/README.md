@@ -24,7 +24,9 @@ The chart includes the following components:
 For local development or testing:
 
 ```bash
-helm install danube-core ./charts/danube-core -f ./charts/danube-core/examples/values-minimal.yaml
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-minimal.yaml
 ```
 
 ### Production Deployment
@@ -32,7 +34,9 @@ helm install danube-core ./charts/danube-core -f ./charts/danube-core/examples/v
 For production with persistence and high availability:
 
 ```bash
-helm install danube-core ./charts/danube-core -f ./charts/danube-core/examples/values-production.yaml
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-production.yaml
 ```
 
 ### With S3 Cloud Storage
@@ -41,13 +45,24 @@ For deployments using S3-compatible storage for WAL:
 
 ```bash
 # Set up S3 credentials as environment variables or Kubernetes secrets
-helm install danube-core ./charts/danube-core -f ./charts/danube-core/examples/values-s3-storage.yaml
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker-cloud.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-s3-storage.yaml
 ```
 
 ### Custom Installation
 
 ```bash
 helm install danube-core ./charts/danube-core --set broker.replicaCount=5 --set etcd.replicaCount=3
+```
+
+### Optional: Prepare Helper Script
+
+You can use the helper script to create the ConfigMap and print the install command:
+
+```bash
+bash ./scripts/prepare_danube_core_release.sh \
+  -c ./charts/danube-core/quickstart/danube_broker.yml
 ```
 
 ## Configuration
@@ -81,6 +96,8 @@ The following table lists the configurable parameters of the Danube Core chart a
 | `broker.externalAccess.enabled` | Enable external access | `false` |
 | `broker.externalAccess.type` | Service type (ClusterIP/NodePort) | `ClusterIP` |
 | `broker.tls.enabled` | Enable TLS | `false` |
+| `broker.config.existingConfigMap` | Existing ConfigMap with broker config | `danube-broker-config` |
+| `broker.config.fileName` | Config file name in ConfigMap | `danube_broker.yml` |
 
 ### ETCD Parameters
 
@@ -185,11 +202,17 @@ kubectl delete pvc -l app.kubernetes.io/name=danube-core
 
 ### Example 1: Minimal Local Setup
 
-See `examples/values-minimal.yaml` for a lightweight configuration suitable for local development.
+See `quickstart/values-minimal.yaml` for a lightweight configuration suitable for local development.
+
+Create the ConfigMap from the example broker config:
+
+```bash
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+```
 
 ### Example 2: Production with HA
 
-See `examples/values-production.yaml` for a production-ready configuration with:
+See `quickstart/values-production.yaml` for a production-ready configuration with:
 - 3 broker replicas
 - 3 ETCD replicas
 - Persistent storage
@@ -198,7 +221,13 @@ See `examples/values-production.yaml` for a production-ready configuration with:
 
 ### Example 3: S3 Cloud Storage
 
-See `examples/values-s3-storage.yaml` for configuration with S3-compatible cloud storage for write-ahead logs.
+See `quickstart/values-s3-storage.yaml` for configuration with S3-compatible cloud storage for write-ahead logs.
+
+Create the ConfigMap using the cloud broker config (edit it for your cloud credentials):
+
+```bash
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker-cloud.yaml
+```
 
 ## Troubleshooting
 

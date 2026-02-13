@@ -40,10 +40,6 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ include "danube-core.fullname" . }}-broker-headless
 {{- end -}}
 
-{{- define "danube-core.broker.config" -}}
-{{ include "danube-core.fullname" . }}-broker-config
-{{- end -}}
-
 {{- define "danube-core.etcd.name" -}}
 {{ include "danube-core.fullname" . }}-etcd
 {{- end -}}

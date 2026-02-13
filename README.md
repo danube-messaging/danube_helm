@@ -21,10 +21,16 @@ This repository provides a modular approach to deploying Danube:
 
 ```sh
 # Minimal local setup
-helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-minimal.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-minimal.yaml
 
 # Production setup with HA
-helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-production.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+helm install danube-core ./charts/danube-core -n danube --create-namespace \
+  -f ./charts/danube-core/quickstart/values-production.yaml
 ```
 
 ### Add Optional Components (Coming Soon)

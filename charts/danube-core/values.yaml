@@ -44,66 +44,11 @@ broker:
     secretName: ""
     mountPath: "/etc/danube/tls"
   config:
-    broker:
-      host: "0.0.0.0"
-    meta_store:
-      host: "" # defaults to the in-cluster etcd service
-      port: 2379
-    bootstrap_namespaces:
-      - default
-    auto_create_topics: true
-    auth:
-      mode: none
-      tls: {}
-      jwt: {}
-    load_manager:
-      assignment_strategy: "balanced"
-      load_report_interval_seconds: 30
-      rebalancing:
-        enabled: false
-        aggressiveness: "balanced"
-        check_interval_seconds: 300
-        max_moves_per_hour: 10
-        cooldown_seconds: 60
-        min_brokers_for_rebalance: 2
-        min_topic_age_seconds: 300
-        blacklist_topics: []
-    wal_cloud:
-      wal:
-        dir: "/danube-data/wal"
-        file_name: "wal.log"
-        cache_capacity: 1024
-        file_sync:
-          interval_ms: 5000
-          max_batch_bytes: 10485760
-        rotation:
-          max_bytes: 536870912
-        retention:
-          time_minutes: 2880
-          size_mb: 20480
-          check_interval_minutes: 5
-      uploader:
-        enabled: false
-        interval_seconds: 30
-        root_prefix: "/danube-data"
-        max_object_mb: 256
-      cloud:
-        backend: "fs" # fs | s3 | gcs | azblob | memory
-        root: "/danube-data/cloud-storage"
-        options: {}
-      metadata:
-        etcd_endpoint: ""
-        in_memory: false
-    policies:
-      max_producers_per_topic: 0
-      max_subscriptions_per_topic: 0
-      max_consumers_per_topic: 0
-      max_consumers_per_subscription: 0
-      max_publish_rate: 0
-      max_dispatch_rate: 0
-      max_subscription_dispatch_rate: 0
-      max_message_size: 10485760
-  configFileOverride: ""
+    # Name of an existing ConfigMap that contains danube_broker.yml
+    # You must create this ConfigMap before installing the chart.
+    existingConfigMap: "danube-broker-config"
+    # File name inside the ConfigMap to mount as /etc/danube/<fileName>
+    fileName: "danube_broker.yml"
   hpa:
     enabled: false
     minReplicas: 3

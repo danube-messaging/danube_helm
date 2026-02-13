@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: danube-broker-config
+data:
+  danube_broker.yml: |
+    cluster_name: "MY_CLUSTER"
+    broker:
+      host: "0.0.0.0"
+      ports:
+        client: 6650
+        admin: 50051
+        prometheus: 9040
+    meta_store:
+      host: "danube-core-etcd"
+      port: 2379
+    bootstrap_namespaces:
+      - "default"
+    auto_create_topics: true
+    auth:
+      mode: none
+      tls:
+        cert_file: "./cert/server-cert.pem"
+        key_file: "./cert/server-key.pem"
+        ca_file: "./cert/ca-cert.pem"
+        verify_client: false
+      jwt:
+        secret_key: "your-secret-key"
+        issuer: "danube-auth"
+        expiration_time: 3600
+    load_manager:
+      assignment_strategy: "fair"
+      load_report_interval_seconds: 30
+      rebalancing:
+        enabled: false
+        aggressiveness: "balanced"
+        check_interval_seconds: 300
+        max_moves_per_hour: 10
+        cooldown_seconds: 60
+        min_brokers_for_rebalance: 2
+        min_topic_age_seconds: 300
+        blacklist_topics: []
+    wal_cloud:
+      wal:
+        dir: "/danube-data/wal"
+        file_name: "wal.log"
+        cache_capacity: 1024
+        file_sync:
+          interval_ms: 5000
+          max_batch_bytes: 10485760
+        rotation:
+          max_bytes: 536870912
+        retention:
+          time_minutes: 2880
+          size_mb: 20480
+          check_interval_minutes: 5
+      uploader:
+        enabled: true
+        interval_seconds: 30
+        root_prefix: "/danube-data"
+        max_object_mb: 256
+      cloud:
+        backend: "fs"
+        root: "/danube-data/cloud-storage"
+      metadata:
+        etcd_endpoint: "danube-core-etcd:2379"
+        in_memory: false
+    policies:
+      max_producers_per_topic: 0
+      max_subscriptions_per_topic: 0
+      max_consumers_per_topic: 0
+      max_consumers_per_subscription: 0
+      max_publish_rate: 0
+      max_subscription_dispatch_rate: 0
+      max_message_size: 10485760
