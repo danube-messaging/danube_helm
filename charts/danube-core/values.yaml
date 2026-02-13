@@ -1,0 +1,176 @@
+# Default values for danube-core.
+
+nameOverride: ""
+fullnameOverride: ""
+
+global:
+  clusterName: "MY_CLUSTER"
+
+broker:
+  replicaCount: 3
+  image:
+    repository: ghcr.io/danube-messaging/danube-broker
+    tag: "v0.7.2"
+    pullPolicy: IfNotPresent
+  ports:
+    client: 6650
+    admin: 50051
+    prometheus: 9040
+  service:
+    type: ClusterIP
+  externalAccess:
+    enabled: false
+    type: ClusterIP # ClusterIP | NodePort | LoadBalancer
+    # This string is rendered with Helm (tpl) then expanded by the container runtime.
+    advertisedAddrTemplate: '$(POD_NAME).{{ include "danube-core.broker.headless" . }}.$(POD_NAMESPACE).svc.cluster.local:$(ADVERTISED_PORT)'
+    advertisedPort: 6650
+    nodePort: null
+  env:
+    RUST_LOG: "danube_broker=info,danube_core=info"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+    mountPath: "/danube-data"
+  tls:
+    enabled: false
+    secretName: ""
+    mountPath: "/etc/danube/tls"
+  config:
+    broker:
+      host: "0.0.0.0"
+    meta_store:
+      host: "" # defaults to the in-cluster etcd service
+      port: 2379
+    bootstrap_namespaces:
+      - default
+    auto_create_topics: true
+    auth:
+      mode: none
+      tls: {}
+      jwt: {}
+    load_manager:
+      assignment_strategy: "balanced"
+      load_report_interval_seconds: 30
+      rebalancing:
+        enabled: false
+        aggressiveness: "balanced"
+        check_interval_seconds: 300
+        max_moves_per_hour: 10
+        cooldown_seconds: 60
+        min_brokers_for_rebalance: 2
+        min_topic_age_seconds: 300
+        blacklist_topics: []
+    wal_cloud:
+      wal:
+        dir: "/danube-data/wal"
+        file_name: "wal.log"
+        cache_capacity: 1024
+        file_sync:
+          interval_ms: 5000
+          max_batch_bytes: 10485760
+        rotation:
+          max_bytes: 536870912
+        retention:
+          time_minutes: 2880
+          size_mb: 20480
+          check_interval_minutes: 5
+      uploader:
+        enabled: false
+        interval_seconds: 30
+        root_prefix: "/danube-data"
+        max_object_mb: 256
+      cloud:
+        backend: "fs" # fs | s3 | gcs | azblob | memory
+        root: "/danube-data/cloud-storage"
+        options: {}
+      metadata:
+        etcd_endpoint: ""
+        in_memory: false
+    policies:
+      max_producers_per_topic: 0
+      max_subscriptions_per_topic: 0
+      max_consumers_per_topic: 0
+      max_consumers_per_subscription: 0
+      max_publish_rate: 0
+      max_dispatch_rate: 0
+      max_subscription_dispatch_rate: 0
+      max_message_size: 10485760
+  configFileOverride: ""
+  hpa:
+    enabled: false
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPU: 70
+
+etcd:
+  replicaCount: 1
+  image:
+    repository: quay.io/coreos/etcd
+    tag: "v3.5.9"
+    pullPolicy: IfNotPresent
+  service:
+    port: 2379
+    peerPort: 2380
+  cluster:
+    initialClusterState: "new"
+    domain: "cluster.local"
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  auth:
+    enabled: false
+
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: "v2.53.0"
+    pullPolicy: IfNotPresent
+  serviceAccount:
+    create: true
+    name: ""
+  rbac:
+    create: true
+  service:
+    port: 9090
+  scrapeInterval: 5s
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  serviceMonitor:
+    enabled: false
+    interval: 5s
+    labels: {}
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+  hosts:
+    - host: "broker.example.com"
+      paths:
+        - path: "/"
+          pathType: ImplementationSpecific
+          servicePort: "client"
+  tls: []

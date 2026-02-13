@@ -54,6 +54,20 @@ If ngnix is running as NodePort (usually for testing), you need local port in th
 
 ## Install Danube PubSub
 
+### Option 1: Install from Local Chart (Development)
+
+For local development, install directly from the chart directory:
+
+```sh
+# Minimal setup for testing (1 broker, no persistence)
+helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-minimal.yaml
+
+# Production setup (3 brokers, persistence enabled)
+helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-production.yaml
+```
+
+### Option 2: Install from Helm Repository (Production)
+
 First, add the repository to your Helm client:
 
 ```sh
@@ -61,15 +75,26 @@ helm repo add danube https://danrusei.github.io/danube_helm
 helm repo update
 ```
 
-You can install the chart with the release name `my-danube-cluster` using the following command:
+Then install the chart:
 
 ```sh
-helm install my-danube-cluster danube/danube-helm-chart --set broker.service.advertisedPort=30115
+helm install danube danube/danube-core
 ```
 
-The advertisedPort is used to allow the client to reach the brokers, through the ingress NodePort.
+### Configure External Access via NodePort
 
-You can further customize the installation, check the readme file. I'm installing it using the default configuration with 3 danube brokers.
+If using NodePort ingress (typical for local Kind clusters), configure the advertised port:
+
+```sh
+helm install danube ./charts/danube-core \
+  --set broker.externalAccess.enabled=true \
+  --set broker.externalAccess.type=NodePort \
+  --set broker.externalAccess.advertisedPort=30115
+```
+
+The advertisedPort should match your ingress NodePort (30115 in the example above).
+
+You can further customize the installation - check the [README](charts/danube-core/README.md) for all configuration options.
 
 ## Resource consideration
 
@@ -94,46 +119,38 @@ Memory Limits: 2Gi to 4Gi
 
 ## Check the install
 
-Make sure that the brokers, etcd and the ngnix ingress are running properly in the cluster.
+Make sure that the brokers, etcd, prometheus and the nginx ingress are running properly in the cluster.
 
 ```bash
-kubectl get all
+kubectl get pods -l app.kubernetes.io/name=danube-core
 
-NAME                                                          READY   STATUS    RESTARTS   AGE
-pod/my-danube-cluster-danube-broker1-766665d6f4-qdbf6         1/1     Running   0          12s
-pod/my-danube-cluster-danube-broker2-5774ff4dd6-dvx66         1/1     Running   0          12s
-pod/my-danube-cluster-danube-broker3-6db6b5fccd-dkr2k         1/1     Running   0          12s
-pod/my-danube-cluster-etcd-867f5b85f8-g4m9m                   1/1     Running   0          12s
-pod/nginx-ingress-ingress-nginx-controller-7bc7c7776d-wqc5g   1/1     Running   0          47m
+NAME                                  READY   STATUS    RESTARTS   AGE
+danube-core-broker-0                  1/1     Running   0          2m
+danube-core-broker-1                  1/1     Running   0          2m
+danube-core-broker-2                  1/1     Running   0          2m
+danube-core-etcd-0                    1/1     Running   0          2m
+danube-core-etcd-1                    1/1     Running   0          2m
+danube-core-etcd-2                    1/1     Running   0          2m
+danube-core-prometheus-xxxxxxxxx      1/1     Running   0          2m
+```
 
-NAME                                                       TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                       AGE
-service/kubernetes                                         ClusterIP   10.96.0.1       <none>        443/TCP                       48m
-service/my-danube-cluster-danube-broker1                   ClusterIP   10.96.40.244    <none>        6650/TCP,50051/TCP,9040/TCP   12s
-service/my-danube-cluster-danube-broker2                   ClusterIP   10.96.204.21    <none>        6650/TCP,50051/TCP,9040/TCP   12s
-service/my-danube-cluster-danube-broker3                   ClusterIP   10.96.46.5      <none>        6650/TCP,50051/TCP,9040/TCP   12s
-service/my-danube-cluster-etcd                             ClusterIP   10.96.232.70    <none>        2379/TCP                      12s
-service/nginx-ingress-ingress-nginx-controller             NodePort    10.96.245.118   <none>        80:30115/TCP,443:30294/TCP    47m
-service/nginx-ingress-ingress-nginx-controller-admission   ClusterIP   10.96.169.82    <none>        443/TCP                       47m
+Check services:
 
-NAME                                                     READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/my-danube-cluster-danube-broker1         1/1     1            1           12s
-deployment.apps/my-danube-cluster-danube-broker2         1/1     1            1           12s
-deployment.apps/my-danube-cluster-danube-broker3         1/1     1            1           12s
-deployment.apps/my-danube-cluster-etcd                   1/1     1            1           12s
-deployment.apps/nginx-ingress-ingress-nginx-controller   1/1     1            1           47m
+```bash
+kubectl get svc -l app.kubernetes.io/name=danube-core
 
-NAME                                                                DESIRED   CURRENT   READY   AGE
-replicaset.apps/my-danube-cluster-danube-broker1-766665d6f4         1         1         1       12s
-replicaset.apps/my-danube-cluster-danube-broker2-5774ff4dd6         1         1         1       12s
-replicaset.apps/my-danube-cluster-danube-broker3-6db6b5fccd         1         1         1       12s
-replicaset.apps/my-danube-cluster-etcd-867f5b85f8                   1         1         1       12s
-replicaset.apps/nginx-ingress-ingress-nginx-controller-7bc7c7776d   1         1         1       47m
+NAME                         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+danube-core-broker           ClusterIP   10.96.40.244    <none>        6650/TCP,50051/TCP,9040/TCP  2m
+danube-core-broker-headless  ClusterIP   None            <none>        6650/TCP,50051/TCP,9040/TCP  2m
+danube-core-etcd             ClusterIP   10.96.232.70    <none>        2379/TCP,2380/TCP            2m
+danube-core-etcd-headless    ClusterIP   None            <none>        2379/TCP,2380/TCP            2m
+danube-core-prometheus       ClusterIP   10.96.100.50    <none>        9090/TCP                     2m
 ```
 
 Validate that the brokers have started correctly:
 
 ```bash
-kubectl logs pod/my-danube-cluster-danube-broker1-766665d6f4-qdbf6
+kubectl logs danube-core-broker-0
 
 initializing metrics exporter
 2024-08-28T04:30:22.969462Z  INFO danube_broker: Use ETCD storage as metadata persistent store
@@ -177,7 +194,7 @@ If you want to connect from your local machine, use kubectl port-forward to forw
 Port Forward etcd Service:
 
 ```bash
-kubectl port-forward service/my-danube-cluster-etcd 2379:2379
+kubectl port-forward service/danube-core-etcd 2379:2379
 ```
 
 Once port forwarding is set up, you can run etcdctl commands from your local machine:
@@ -185,3 +202,13 @@ Once port forwarding is set up, you can run etcdctl commands from your local mac
 ```bash
 etcdctl --endpoints=http://localhost:2379 watch --prefix /
 ```
+
+## Access Prometheus (optional)
+
+Port forward Prometheus to view metrics:
+
+```bash
+kubectl port-forward service/danube-core-prometheus 9090:9090
+```
+
+Then open `http://localhost:9090` in your browser to access the Prometheus UI.

@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "danube-core.etcd.name" . }}
+  labels:
+    {{- include "danube-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: etcd
+spec:
+  serviceName: {{ include "danube-core.etcd.headless" . }}
+  replicas: {{ .Values.etcd.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "danube-core.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: etcd
+  template:
+    metadata:
+      labels:
+        {{- include "danube-core.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: etcd
+    spec:
+      containers:
+        - name: etcd
+          image: "{{ .Values.etcd.image.repository }}:{{ .Values.etcd.image.tag }}"
+          imagePullPolicy: {{ .Values.etcd.image.pullPolicy }}
+          args:
+            - "--name=$(POD_NAME)"
+            - "--data-dir=/etcd-data"
+            - "--listen-client-urls=http://0.0.0.0:{{ .Values.etcd.service.port }}"
+            - '--advertise-client-urls=http://$(POD_NAME).{{ include "danube-core.etcd.headless" . }}.$(POD_NAMESPACE).svc.{{ .Values.etcd.cluster.domain }}:{{ .Values.etcd.service.port }}'
+            - "--listen-peer-urls=http://0.0.0.0:{{ .Values.etcd.service.peerPort }}"
+            - '--initial-advertise-peer-urls=http://$(POD_NAME).{{ include "danube-core.etcd.headless" . }}.$(POD_NAMESPACE).svc.{{ .Values.etcd.cluster.domain }}:{{ .Values.etcd.service.peerPort }}'
+            - '--initial-cluster={{ include "danube-core.etcd.initialCluster" . }}'
+            - '--initial-cluster-state={{ .Values.etcd.cluster.initialClusterState }}'
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+            - name: client
+              containerPort: {{ .Values.etcd.service.port }}
+            - name: peer
+              containerPort: {{ .Values.etcd.service.peerPort }}
+          volumeMounts:
+            - name: data
+              mountPath: /etcd-data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: client
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: client
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+{{ toYaml .Values.etcd.resources | nindent 12 }}
+      {{- if not .Values.etcd.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.etcd.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "danube-core.labels" . | nindent 10 }}
+          app.kubernetes.io/component: etcd
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.etcd.persistence.size }}
+        {{- if .Values.etcd.persistence.storageClass }}
+        storageClassName: {{ .Values.etcd.persistence.storageClass | quote }}
+        {{- end }}
+  {{- end }}

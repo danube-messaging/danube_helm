@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "danube-core.etcd.name" . }}
+  labels:
+    {{- include "danube-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: etcd
+spec:
+  type: ClusterIP
+  ports:
+    - name: client
+      port: {{ .Values.etcd.service.port }}
+      targetPort: client
+    - name: peer
+      port: {{ .Values.etcd.service.peerPort }}
+      targetPort: peer
+  selector:
+    {{- include "danube-core.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: etcd

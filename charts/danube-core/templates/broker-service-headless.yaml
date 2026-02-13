@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "danube-core.broker.headless" . }}
+  labels:
+    {{- include "danube-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: broker
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: client
+      port: {{ .Values.broker.ports.client }}
+      targetPort: client
+    - name: admin
+      port: {{ .Values.broker.ports.admin }}
+      targetPort: admin
+    - name: prometheus
+      port: {{ .Values.broker.ports.prometheus }}
+      targetPort: prometheus
+  selector:
+    {{- include "danube-core.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: broker

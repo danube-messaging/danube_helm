@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "danube-core.broker.name" . }}
+  labels:
+    {{- include "danube-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: broker
+spec:
+  serviceName: {{ include "danube-core.broker.headless" . }}
+  replicas: {{ .Values.broker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "danube-core.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: broker
+  template:
+    metadata:
+      labels:
+        {{- include "danube-core.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: broker
+    spec:
+      containers:
+        - name: danube-broker
+          image: "{{ .Values.broker.image.repository }}:{{ .Values.broker.image.tag }}"
+          imagePullPolicy: {{ .Values.broker.image.pullPolicy }}
+          args:
+            - "--config-file"
+            - "/etc/danube/danube_broker.yml"
+            - "--advertised-addr"
+            - "{{ tpl .Values.broker.externalAccess.advertisedAddrTemplate . }}"
+          ports:
+            - name: client
+              containerPort: {{ .Values.broker.ports.client }}
+            - name: admin
+              containerPort: {{ .Values.broker.ports.admin }}
+            - name: prometheus
+              containerPort: {{ .Values.broker.ports.prometheus }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: BROKER_PORT
+              value: "{{ .Values.broker.ports.client }}"
+            - name: ADVERTISED_PORT
+              value: "{{ .Values.broker.externalAccess.advertisedPort }}"
+            - name: RUST_LOG
+              value: "{{ .Values.broker.env.RUST_LOG }}"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/danube/danube_broker.yml
+              subPath: danube_broker.yml
+            - name: data
+              mountPath: {{ .Values.broker.persistence.mountPath }}
+            {{- if and .Values.broker.tls.enabled .Values.broker.tls.secretName }}
+            - name: tls
+              mountPath: {{ .Values.broker.tls.mountPath }}
+              readOnly: true
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: admin
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: admin
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+{{ toYaml .Values.broker.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "danube-core.broker.config" . }}
+        {{- if and .Values.broker.tls.enabled .Values.broker.tls.secretName }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.broker.tls.secretName }}
+        {{- end }}
+        {{- if not .Values.broker.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.broker.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "danube-core.labels" . | nindent 10 }}
+          app.kubernetes.io/component: broker
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.broker.persistence.size }}
+        {{- if .Values.broker.persistence.storageClass }}
+        storageClassName: {{ .Values.broker.persistence.storageClass | quote }}
+        {{- end }}
+  {{- end }}

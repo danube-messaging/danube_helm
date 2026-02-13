@@ -1,127 +1,117 @@
-# Danube Cluster Helm Chart
+# Danube Helm Charts
 
-This Helm chart deploys the Danube Cluster with ETCD as metadata storage in the same namespace.
+Modular Helm charts for deploying Danube messaging platform on Kubernetes.
+
+## Chart Structure
+
+This repository provides a modular approach to deploying Danube:
+
+- **`danube-core`**: Core components (3 brokers, ETCD, Prometheus) - required foundation
+- **Additional charts** (coming soon): Admin UI, connectors (Qdrant, DeltaLake, SurrealDB, MQTT, Webhook)
 
 ## Prerequisites
 
 - Kubernetes 1.19+
-- Helm 3.2.0+
+- Helm 3.0+
+- PersistentVolume provisioner support (for production deployments)
 
-## Installation
+## Quick Start
 
-### Add Helm Repository
-
-First, add the repository to your Helm client:
-
-```sh
-helm repo add danube https://danube-messaging.github.io/danube_helm
-helm repo update
-```
-
-### Install the Helm Chart
-
-You can install the chart with the release name `my-danube-cluster` using the following command:
+### Install Core Components
 
 ```sh
-helm install my-danube-cluster danube/danube-helm-chart
+# Minimal local setup
+helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-minimal.yaml
+
+# Production setup with HA
+helm install danube ./charts/danube-core -f ./charts/danube-core/examples/values-production.yaml
 ```
 
-This will deploy the Danube Broker and an ETCD instance with the default configuration.
-
-## Configuration
-
-### ETCD Configuration
-
-The following table lists the configurable parameters of the ETCD chart and their default values.
-
-| Parameter                   | Description                        | Default               |
-|-----------------------------|------------------------------------|-----------------------|
-| `etcd.enabled`              | Enable or disable ETCD deployment  | `true`                |
-| `etcd.replicaCount`         | Number of ETCD instances           | `1`                   |
-| `etcd.image.repository`     | ETCD image repository              | `bitnami/etcd`        |
-| `etcd.image.tag`            | ETCD image tag                     | `latest`              |
-| `etcd.image.pullPolicy`     | ETCD image pull policy             | `IfNotPresent`        |
-| `etcd.service.type`         | ETCD service type                  | `ClusterIP`           |
-| `etcd.service.port`         | ETCD service port                  | `2379`                |
-
-### Broker Configuration
-
-The following table lists the configurable parameters of the Danube Broker chart and their default values.
-
-| Parameter                     | Description                          | Default                                |
-|-------------------------------|--------------------------------------|----------------------------------------|
-| `broker.replicaCount`         | Number of broker instances           | `1`                                    |
-| `broker.image.repository`     | Broker image repository              | `ghcr.io/your-username/danube-broker`  |
-| `broker.image.tag`            | Broker image tag                     | `latest`                               |
-| `broker.image.pullPolicy`     | Broker image pull policy             | `IfNotPresent`                         |
-| `broker.service.type`         | Broker service type                  | `ClusterIP`                            |
-| `broker.service.port`         | Broker service port                  | `6650`                                 |
-| `broker.resources.limits.cpu` | CPU limit for broker container       | `500m`                                 |
-| `broker.resources.limits.memory` | Memory limit for broker container | `512Mi`                                |
-| `broker.resources.requests.cpu` | CPU request for broker container   | `200m`                                 |
-| `broker.resources.requests.memory` | Memory request for broker container | `256Mi`                            |
-| `broker.env.RUST_LOG`         | Rust log level for broker            | `danube_broker=trace`                  |
-| `broker.brokerAddr`           | Broker address                       | `0.0.0.0:6650`                         |
-| `broker.clusterName`          | Cluster name                         | `MY_CLUSTER`                           |
-| `broker.metaStoreAddr`        | Metadata store address               | `etcd:2379`                            |
-
-You can override the default values by providing a custom `values.yaml` file:
+### Add Optional Components (Coming Soon)
 
 ```sh
-helm install my-danube-cluster danube/danube-helm-chart -f custom-values.yaml
+# Install Admin UI
+helm install danube-admin ./charts/danube-admin
+
+# Install connectors as needed
+helm install danube-qdrant ./charts/danube-qdrant-connector
 ```
 
-Alternatively, you can specify individual values using the `--set` flag:
+## Documentation
+
+For detailed configuration options, see the chart-specific documentation:
+
+- **[Danube Core Chart](charts/danube-core/README.md)**: Complete reference for all configuration parameters
+
+## Common Configuration Patterns
+
+### Customize Broker Replicas
 
 ```sh
-helm install my-danube-cluster danube/danube-helm-chart --set broker.replicaCount=2 --set broker.brokerAddr="0.0.0.0:6651"
+helm install danube ./charts/danube-core --set broker.replicaCount=5
 ```
 
-## Resource consideration
+### Enable Ingress
 
-Pay attention to resource allocation, the default configuration is just OK for testing.
+```sh
+helm install danube ./charts/danube-core \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hosts[0].host=danube.example.com
+```
 
-For production environment you may want to increase.
+### Configure Resource Limits
 
-### Sizing for Production
+```sh
+helm install danube ./charts/danube-core \
+  --set broker.resources.requests.memory=2Gi \
+  --set broker.resources.limits.memory=4Gi
+```
 
-**Small to Medium Load**:
+### Use Custom Values File
 
-CPU Requests: 500m to 1 CPU
-CPU Limits: 1 CPU to 2 CPUs
-Memory Requests: 512Mi to 1Gi
-Memory Limits: 1Gi to 2Gi
-
-**Heavy Load:**
-CPU Requests: 1 CPU to 2 CPUs
-CPU Limits: 2 CPUs to 4 CPUs
-Memory Requests: 1Gi to 2Gi
-Memory Limits: 2Gi to 4Gi
+```sh
+helm install danube ./charts/danube-core -f my-custom-values.yaml
+```
 
 ## Uninstallation
 
-To uninstall the `my-danube-cluster` release:
+To uninstall the Danube release:
 
 ```sh
-helm uninstall my-danube-cluster
+helm uninstall danube
 ```
 
 This command removes all the Kubernetes components associated with the chart and deletes the release.
 
+**Note**: PersistentVolumeClaims are not automatically deleted. Clean them up manually if needed:
+
+```sh
+kubectl delete pvc -l app.kubernetes.io/name=danube-core
+```
+
 ## Troubleshooting
 
-To get the status of the ETCD and Broker pods:
+Get pod status:
 
 ```sh
-kubectl get pods -l app=etcd
-kubectl get pods -l app=broker
+kubectl get pods -l app.kubernetes.io/name=danube-core
 ```
 
-To view the logs of a specific broker pod:
+View logs:
 
 ```sh
-kubectl logs <broker-pod-name>
+# Broker logs
+kubectl logs -l app.kubernetes.io/component=broker
+
+# ETCD logs
+kubectl logs -l app.kubernetes.io/component=etcd
+
+# Prometheus logs
+kubectl logs -l app.kubernetes.io/component=prometheus
 ```
+
+For detailed troubleshooting, see the [Danube Core Chart Documentation](charts/danube-core/README.md#troubleshooting).
 
 ## License
 

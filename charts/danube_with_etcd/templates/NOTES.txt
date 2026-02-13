@@ -1,2 +1,0 @@
-1. Get the status of the ETCD and Broker deployments by running:
-  kubectl get all

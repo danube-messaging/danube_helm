@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "danube-core.fullname" . }}
+  labels:
+    {{- include "danube-core.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path | quote }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "danube-core.broker.name" $ }}
+                port:
+                  {{- if eq .servicePort "admin" }}
+                  name: admin
+                  {{- else if eq .servicePort "prometheus" }}
+                  name: prometheus
+                  {{- else }}
+                  name: client
+                  {{- end }}
+          {{- end }}
+    {{- end }}
+{{- end }}

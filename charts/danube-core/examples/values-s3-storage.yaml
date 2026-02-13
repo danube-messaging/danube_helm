@@ -1,0 +1,53 @@
+# Configuration with S3-compatible cloud storage for WAL
+# Requires S3 credentials to be configured separately
+
+global:
+  clusterName: "danube-s3"
+
+broker:
+  replicaCount: 3
+  image:
+    repository: ghcr.io/danube-messaging/danube-broker
+    tag: v0.7.2
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: true
+    size: 20Gi
+  config:
+    wal_cloud:
+      enabled: true
+      uploader:
+        bucket_name: "danube-wal-bucket"
+        endpoint: "s3.amazonaws.com"
+        region: "us-east-1"
+        access_key_id: "${AWS_ACCESS_KEY_ID}"
+        secret_access_key: "${AWS_SECRET_ACCESS_KEY}"
+      metadata:
+        etcd_endpoint: ""  # Will use default from helper
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+etcd:
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+prometheus:
+  enabled: true
+  serviceAccount:
+    create: true
+  rbac:
+    create: true

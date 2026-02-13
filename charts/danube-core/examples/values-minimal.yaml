@@ -1,0 +1,50 @@
+# Minimal configuration for local development
+# This uses minimal resources and disables persistence
+
+global:
+  clusterName: "danube-dev"
+
+broker:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/danube-messaging/danube-broker
+    tag: v0.7.2
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+etcd:
+  replicaCount: 1
+  image:
+    repository: quay.io/coreos/etcd
+    tag: v3.5.9
+    pullPolicy: IfNotPresent
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+
+prometheus:
+  enabled: true
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+
+ingress:
+  enabled: false

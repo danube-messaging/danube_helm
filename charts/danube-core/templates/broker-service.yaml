@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "danube-core.broker.name" . }}
+  labels:
+    {{- include "danube-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: broker
+spec:
+  type: {{ ternary .Values.broker.externalAccess.type .Values.broker.service.type .Values.broker.externalAccess.enabled }}
+  ports:
+    - name: client
+      port: {{ .Values.broker.ports.client }}
+      targetPort: client
+      {{- if and .Values.broker.externalAccess.enabled (eq .Values.broker.externalAccess.type "NodePort") (not (empty .Values.broker.externalAccess.nodePort)) }}
+      nodePort: {{ .Values.broker.externalAccess.nodePort }}
+      {{- end }}
+    - name: admin
+      port: {{ .Values.broker.ports.admin }}
+      targetPort: admin
+    - name: prometheus
+      port: {{ .Values.broker.ports.prometheus }}
+      targetPort: prometheus
+  selector:
+    {{- include "danube-core.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: broker
