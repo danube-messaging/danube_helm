@@ -11,13 +11,13 @@ Options:
   -m, --configmap-name  ConfigMap name (default: danube-broker-config)
   -f, --file-name       File name in ConfigMap (default: danube_broker.yml)
   -r, --release-name    Helm release name (default: danube-core)
-  -v, --values-file     Values file (default: ./charts/danube-core/quickstart/values-minimal.yaml)
+  -v, --values-file     Values file (default: ./charts/danube-core/examples/values-minimal.yaml)
       --no-create-namespace Skip creating the namespace
   -h, --help            Show this help message
 
 Example:
   ./scripts/prepare_danube_core_release.sh \
-    -c ./charts/danube-core/quickstart/danube_broker.yml \
+    -c ./charts/danube-core/examples/danube_broker.yml \
     -n danube
 USAGE
 }
@@ -26,7 +26,7 @@ NAMESPACE="danube"
 CONFIGMAP_NAME="danube-broker-config"
 FILE_NAME="danube_broker.yml"
 RELEASE_NAME="danube-core"
-VALUES_FILE="./charts/danube-core/quickstart/values-minimal.yaml"
+VALUES_FILE="./charts/danube-core/examples/values-minimal.yaml"
 CREATE_NAMESPACE="true"
 CONFIG_FILE=""
 

@@ -1,6 +1,7 @@
 apiVersion: v2
 name: danube-core
 description: Danube core chart (brokers + etcd + Prometheus)
+icon: https://raw.githubusercontent.com/danube-messaging/danube/main/wave.png
 type: application
-version: 1.0.0
+version: 0.2.0
 appVersion: "v0.7.2"

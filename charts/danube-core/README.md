@@ -24,9 +24,12 @@ The chart includes the following components:
 For local development or testing:
 
 ```bash
-kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl create configmap danube-broker-config \
+  --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml \
+  -n danube --dry-run=client -o yaml | kubectl apply -f -
 helm install danube-core ./charts/danube-core -n danube --create-namespace \
-  -f ./charts/danube-core/quickstart/values-minimal.yaml
+  -f ./charts/danube-core/examples/values-minimal.yaml
 ```
 
 ### Production Deployment
@@ -34,9 +37,12 @@ helm install danube-core ./charts/danube-core -n danube --create-namespace \
 For production with persistence and high availability:
 
 ```bash
-kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl create configmap danube-broker-config \
+  --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml \
+  -n danube --dry-run=client -o yaml | kubectl apply -f -
 helm install danube-core ./charts/danube-core -n danube --create-namespace \
-  -f ./charts/danube-core/quickstart/values-production.yaml
+  -f ./charts/danube-core/examples/values-production.yaml
 ```
 
 ### With S3 Cloud Storage
@@ -45,9 +51,12 @@ For deployments using S3-compatible storage for WAL:
 
 ```bash
 # Set up S3 credentials as environment variables or Kubernetes secrets
-kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker-cloud.yaml
+kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl create configmap danube-broker-config \
+  --from-file=danube_broker_cloud.yml=./charts/danube-core/examples/danube_broker_cloud.yml \
+  -n danube --dry-run=client -o yaml | kubectl apply -f -
 helm install danube-core ./charts/danube-core -n danube --create-namespace \
-  -f ./charts/danube-core/quickstart/values-s3-storage.yaml
+  -f ./charts/danube-core/examples/values-s3-storage.yaml
 ```
 
 ### Custom Installation
@@ -58,11 +67,11 @@ helm install danube-core ./charts/danube-core --set broker.replicaCount=5 --set 
 
 ### Optional: Prepare Helper Script
 
-You can use the helper script to create the ConfigMap and print the install command:
+You can use the helper script to create the namespace + ConfigMap and print the install command:
 
 ```bash
 bash ./scripts/prepare_danube_core_release.sh \
-  -c ./charts/danube-core/quickstart/danube_broker.yml
+  -c ./charts/danube-core/examples/danube_broker.yml
 ```
 
 ## Configuration
@@ -202,17 +211,19 @@ kubectl delete pvc -l app.kubernetes.io/name=danube-core
 
 ### Example 1: Minimal Local Setup
 
-See `quickstart/values-minimal.yaml` for a lightweight configuration suitable for local development.
+See `examples/values-minimal.yaml` for a lightweight configuration suitable for local development.
 
 Create the ConfigMap from the example broker config:
 
 ```bash
-kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker.yaml
+kubectl create configmap danube-broker-config \
+  --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml \
+  -n danube --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ### Example 2: Production with HA
 
-See `quickstart/values-production.yaml` for a production-ready configuration with:
+See `examples/values-production.yaml` for a production-ready configuration with:
 - 3 broker replicas
 - 3 ETCD replicas
 - Persistent storage
@@ -221,12 +232,14 @@ See `quickstart/values-production.yaml` for a production-ready configuration wit
 
 ### Example 3: S3 Cloud Storage
 
-See `quickstart/values-s3-storage.yaml` for configuration with S3-compatible cloud storage for write-ahead logs.
+See `examples/values-s3-storage.yaml` for configuration with S3-compatible cloud storage for write-ahead logs.
 
 Create the ConfigMap using the cloud broker config (edit it for your cloud credentials):
 
 ```bash
-kubectl apply -n danube -f ./charts/danube-core/quickstart/configmap-broker-cloud.yaml
+kubectl create configmap danube-broker-config \
+  --from-file=danube_broker_cloud.yml=./charts/danube-core/examples/danube_broker_cloud.yml \
+  -n danube --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ## Troubleshooting
@@ -303,7 +316,7 @@ The chart creates the following resources:
 
 For issues and questions:
 - GitHub: https://github.com/danube-messaging/danube
-- Documentation: https://danube-messaging.io
+- Documentation: https://danube-docs.dev-state.com/
 
 ## License
 
