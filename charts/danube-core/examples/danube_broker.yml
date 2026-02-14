@@ -15,7 +15,7 @@ broker:
 
 # Metadata Store Configuration (etcd)
 meta_store:
-  host: "etcd"
+  host: "danube-core-etcd"
   port: 2379
 
 # Namespaces to be created on boot
@@ -76,7 +76,7 @@ wal_cloud:
     backend: "fs"
     root: "/danube-data/cloud-storage"
   metadata:
-    etcd_endpoint: "127.0.0.1:2379"
+    etcd_endpoint: "danube-core-etcd:2379"
     in_memory: false
 
 # Broker policies, that can be overwritten by namespace / topic policies

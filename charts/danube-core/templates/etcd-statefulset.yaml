@@ -22,6 +22,8 @@ spec:
         - name: etcd
           image: "{{ .Values.etcd.image.repository }}:{{ .Values.etcd.image.tag }}"
           imagePullPolicy: {{ .Values.etcd.image.pullPolicy }}
+          command:
+            - etcd
           args:
             - "--name=$(POD_NAME)"
             - "--data-dir=/etcd-data"

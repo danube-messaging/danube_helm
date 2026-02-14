@@ -57,7 +57,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- $domain := .Values.etcd.cluster.domain -}}
 {{- $name := include "danube-core.etcd.name" . -}}
 {{- $headless := include "danube-core.etcd.headless" . -}}
-{{- $peerPort := .Values.etcd.service.peerPort -}}
+{{- $peerPort := int .Values.etcd.service.peerPort -}}
 {{- range $i := until $replicas -}}
 {{- if $i }},{{ end -}}
 {{- printf "%s-%d=http://%s-%d.%s.%s.svc.%s:%d" $name $i $name $i $headless $.Release.Namespace $domain $peerPort -}}
