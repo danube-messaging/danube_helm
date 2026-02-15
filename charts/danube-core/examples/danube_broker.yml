@@ -12,6 +12,15 @@ broker:
     admin: 50051
     # Prometheus metrics exporter
     prometheus: 9040
+  # Optional: advertised addresses for proxy/k8s mode.
+  # If omitted, bind address (host:ports.client) is used for both broker_url and connect_url.
+  # NOTE: In Helm deployments the CLI flags --advertised-addr and --connect-url override
+  # this section, so you typically leave it commented out and configure via values.yaml instead.
+  # advertised_listeners:
+  #   # Internal: per-pod address reachable inside the cluster (broker identity, inter-broker)
+  #   broker_url: "danube-core-broker-0.danube-core-broker-headless.danube.svc.cluster.local:6650"
+  #   # External: shared address reachable by external clients via gRPC proxy/ingress
+  #   connect_url: "broker.example.com:6650"
 
 # Metadata Store Configuration (etcd)
 meta_store:

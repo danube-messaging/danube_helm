@@ -31,8 +31,14 @@ spec:
             - "0.0.0.0:{{ .Values.broker.ports.admin }}"
             - "--prom-exporter"
             - "0.0.0.0:{{ .Values.broker.ports.prometheus }}"
+            {{- if .Values.broker.externalAccess.enabled }}
             - "--advertised-addr"
             - "{{ tpl .Values.broker.externalAccess.advertisedAddrTemplate . }}"
+            {{- if .Values.broker.externalAccess.connectUrl }}
+            - "--connect-url"
+            - "$(CONNECT_URL)"
+            {{- end }}
+            {{- end }}
           ports:
             - name: client
               containerPort: {{ .Values.broker.ports.client }}
@@ -51,6 +57,10 @@ spec:
                   fieldPath: metadata.namespace
             - name: ADVERTISED_PORT
               value: "{{ .Values.broker.externalAccess.advertisedPort }}"
+            {{- if .Values.broker.externalAccess.connectUrl }}
+            - name: CONNECT_URL
+              value: {{ .Values.broker.externalAccess.connectUrl | quote }}
+            {{- end }}
             - name: RUST_LOG
               value: "{{ .Values.broker.env.RUST_LOG }}"
           volumeMounts:

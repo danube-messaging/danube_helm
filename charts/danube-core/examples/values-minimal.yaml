@@ -1,5 +1,6 @@
-# Minimal configuration for local development
-# This uses minimal resources and disables persistence
+# Minimal configuration for local development with Kind.
+# Uses 1 broker, no persistence, no ingress.
+# Access the broker via: kubectl port-forward svc/danube-core-broker 6650:6650 -n danube
 
 global:
   clusterName: "danube-dev"
@@ -13,6 +14,9 @@ broker:
   config:
     existingConfigMap: "danube-broker-config"
     fileName: "danube_broker.yml"
+  externalAccess:
+    enabled: true
+    advertisedPort: 6650
   persistence:
     enabled: false
   resources:

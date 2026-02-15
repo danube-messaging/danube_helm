@@ -21,10 +21,17 @@ broker:
   externalAccess:
     enabled: false
     type: ClusterIP # ClusterIP | NodePort | LoadBalancer
-    # This string is rendered with Helm (tpl) then expanded by the container runtime.
+    # Per-pod broker identity (broker_url) via headless DNS.
+    # Rendered by Helm (tpl) then expanded by the K8s container runtime.
     advertisedAddrTemplate: '$(POD_NAME).{{ include "danube-core.broker.headless" . }}.$(POD_NAMESPACE).svc.cluster.local:$(ADVERTISED_PORT)'
     advertisedPort: 6650
     nodePort: null
+    # Proxy mode: set connectUrl to the external ingress/proxy address.
+    # When set, the broker advertises broker_url (per-pod headless DNS) for internal
+    # identity and connect_url (this value) for external clients via the proxy.
+    # When empty, both broker_url and connect_url equal the advertisedAddrTemplate (no proxy).
+    # Requires broker image with --connect-url CLI flag support.
+    connectUrl: ""
   env:
     RUST_LOG: "danube_broker=info,danube_core=info"
   resources:
@@ -112,6 +119,9 @@ ingress:
   className: "nginx"
   annotations:
     nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    # Hash-based sticky routing: ensures requests with the same
+    # x-danube-broker-url header are routed to the same backend pod.
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_danube_broker_url"
   hosts:
     - host: "broker.example.com"
       paths:

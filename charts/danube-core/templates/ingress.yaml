@@ -27,7 +27,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "danube-core.broker.name" $ }}
+                name: {{ include "danube-core.broker.headless" $ }}
                 port:
                   {{- if eq .servicePort "admin" }}
                   name: admin

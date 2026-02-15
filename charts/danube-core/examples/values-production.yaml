@@ -26,9 +26,12 @@ broker:
       cpu: "2000m"
   externalAccess:
     enabled: true
-    type: NodePort
-    advertisedAddrTemplate: "$(POD_NAME).{{ include \"danube-core.broker.headless\" . }}.$(POD_NAMESPACE).svc.cluster.local:$(ADVERTISED_PORT)"
+    type: ClusterIP
+    advertisedAddrTemplate: '$(POD_NAME).{{ include "danube-core.broker.headless" . }}.$(POD_NAMESPACE).svc.cluster.local:$(ADVERTISED_PORT)'
     advertisedPort: 6650
+    # Proxy mode: external clients connect via ingress, broker identity is internal headless DNS.
+    # The client sends x-danube-broker-url header; nginx hashes it to the correct backend pod.
+    connectUrl: "danube.example.com:443"
 
 etcd:
   replicaCount: 3
@@ -68,15 +71,16 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+    # Hash-based sticky routing: requests with the same x-danube-broker-url
+    # header are consistently routed to the same backend broker pod.
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_danube_broker_url"
   hosts:
     - host: danube.example.com
       paths:
-        - path: /admin
-          pathType: Prefix
-          servicePort: admin
-        - path: /metrics
-          pathType: Prefix
-          servicePort: prometheus
+        - path: /
+          pathType: ImplementationSpecific
+          servicePort: client
   tls:
     - secretName: danube-tls
       hosts:
