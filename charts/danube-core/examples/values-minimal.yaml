@@ -1,15 +1,29 @@
 # Minimal configuration for local development with Kind.
-# Uses 1 broker, no persistence, no ingress.
-# Access the broker via: kubectl port-forward svc/danube-core-broker 6650:6650 -n danube
+# Uses 3 brokers with persistence; pair with danube-envoy chart for gRPC routing.
+#
+# Prerequisites:
+#   1. Install danube-envoy first to get the proxy address:
+#        helm install danube-envoy ./charts/danube-envoy -n danube
+#   2. Discover the proxy address:
+#        PROXY_PORT=$(kubectl get svc danube-envoy -n danube -o jsonpath='{.spec.ports[?(@.name=="grpc")].nodePort}')
+#        NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+#
+# Install:
+#   kubectl create namespace danube
+#   kubectl create configmap danube-broker-config \
+#     --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml -n danube
+#   helm install danube-core ./charts/danube-core -n danube \
+#     -f ./charts/danube-core/examples/values-minimal.yaml \
+#     --set broker.externalAccess.connectUrl="${NODE_IP}:${PROXY_PORT}"
 
 global:
   clusterName: "danube-dev"
 
 broker:
-  replicaCount: 1
+  replicaCount: 3
   image:
     repository: ghcr.io/danube-messaging/danube-broker
-    tag: v0.7.2
+    tag: v0.7.3
     pullPolicy: IfNotPresent
   config:
     existingConfigMap: "danube-broker-config"
@@ -17,8 +31,14 @@ broker:
   externalAccess:
     enabled: true
     advertisedPort: 6650
+    # Set at install time to the Envoy proxy external address:
+    #   --set broker.externalAccess.connectUrl="<NODE_IP>:<PROXY_NODEPORT>"
+    connectUrl: ""
   persistence:
-    enabled: false
+    enabled: true
+    size: 5Gi
+    storageClass: ""
+    mountPath: "/danube-data"
   resources:
     requests:
       memory: "256Mi"
@@ -34,7 +54,8 @@ etcd:
     tag: v3.5.9
     pullPolicy: IfNotPresent
   persistence:
-    enabled: false
+    enabled: true
+    size: 1Gi
   resources:
     requests:
       memory: "128Mi"
@@ -52,6 +73,3 @@ prometheus:
     limits:
       memory: "256Mi"
       cpu: "500m"
-
-ingress:
-  enabled: false

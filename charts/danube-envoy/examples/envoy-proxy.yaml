@@ -1,0 +1,141 @@
+# Default Envoy proxy configuration for Danube gRPC routing.
+#
+# This file is the starting point for custom Envoy configurations.
+# To use a custom config:
+#   1. Copy this file and modify as needed
+#   2. Create a ConfigMap from it:
+#        kubectl create configmap my-envoy-config --from-file=envoy.yaml=envoy-proxy.yaml -n danube
+#   3. Reference it in your danube-envoy values:
+#        existingConfigMap: "my-envoy-config"
+#
+# IMPORTANT: The ConfigMap MUST contain a key named "envoy.yaml".
+#
+# Key concepts:
+#   - The Lua filter strips the http(s):// scheme and trailing path from the
+#     x-danube-broker-url header so the Dynamic Forward Proxy can resolve bare host:port.
+#   - Route 1 (header present): routes to the specific broker via Dynamic Forward Proxy.
+#   - Route 2 (no header): round-robins to any broker for initial topic lookups.
+#   - Both clusters use HTTP/2 (h2c) since brokers serve gRPC over plaintext.
+#
+# Common customizations:
+#   - Add access_log under http_connection_manager for request logging
+#   - Add envoy.filters.http.local_ratelimit for rate limiting
+#   - Replace allow_insecure_cluster_options with TLS transport_socket for mTLS
+#   - Adjust dns_refresh_rate for faster/slower DNS convergence
+#   - Update the static cluster address to match your release name and namespace:
+#       <release>-broker-headless.<namespace>.svc.cluster.local
+
+static_resources:
+  listeners:
+  - name: danube_ingress
+    address:
+      socket_address:
+        address: 0.0.0.0
+        port_value: 6650
+    filter_chains:
+    - filters:
+      - name: envoy.filters.network.http_connection_manager
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+          stat_prefix: danube_proxy
+          codec_type: AUTO
+          http2_protocol_options: {}
+          http_filters:
+          # Lua filter: strip http(s):// scheme from x-danube-broker-url header
+          # so the Dynamic Forward Proxy can resolve the bare hostname:port.
+          - name: envoy.filters.http.lua
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inline_code: |
+                function envoy_on_request(request_handle)
+                  local header = request_handle:headers():get("x-danube-broker-url")
+                  if header then
+                    header = header:gsub("^https?://", "")
+                    header = header:gsub("/.*$", "")
+                    request_handle:headers():replace("x-danube-broker-url", header)
+                  end
+                end
+          # Dynamic Forward Proxy filter for header-based routing
+          - name: envoy.filters.http.dynamic_forward_proxy
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
+              dns_cache_config:
+                name: dynamic_dns_cache
+                dns_lookup_family: V4_ONLY
+                dns_refresh_rate: 5s
+          # Router (must be last)
+          - name: envoy.filters.http.router
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+          route_config:
+            name: local_route
+            virtual_hosts:
+            - name: danube_service
+              domains: ["*"]
+              routes:
+              # Route 1: requests WITH x-danube-broker-url header -> dynamic forward proxy
+              - match:
+                  prefix: "/"
+                  headers:
+                  - name: x-danube-broker-url
+                    present_match: true
+                route:
+                  cluster: dynamic_forward_proxy_cluster
+                  timeout: 0s
+                typed_per_filter_config:
+                  envoy.filters.http.dynamic_forward_proxy:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
+                    host_rewrite_header: x-danube-broker-url
+              # Route 2: requests WITHOUT header -> round-robin to any broker (topic lookups)
+              - match:
+                  prefix: "/"
+                route:
+                  cluster: danube_brokers
+                  timeout: 0s
+
+  clusters:
+  # Dynamic cluster: resolves broker address from x-danube-broker-url header on-the-fly
+  - name: dynamic_forward_proxy_cluster
+    lb_policy: CLUSTER_PROVIDED
+    cluster_type:
+      name: envoy.clusters.dynamic_forward_proxy
+      typed_config:
+        "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+        allow_insecure_cluster_options: true
+        dns_cache_config:
+          name: dynamic_dns_cache
+          dns_lookup_family: V4_ONLY
+          dns_refresh_rate: 5s
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+
+  # Static cluster: headless broker service for initial lookups (no header)
+  # UPDATE the address below to match your Helm release name and namespace:
+  #   <release-name>-broker-headless.<namespace>.svc.cluster.local
+  - name: danube_brokers
+    type: STRICT_DNS
+    lb_policy: ROUND_ROBIN
+    load_assignment:
+      cluster_name: danube_brokers
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: danube-core-broker-headless.danube.svc.cluster.local
+                port_value: 6650
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        explicit_http_config:
+          http2_protocol_options: {}
+
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901

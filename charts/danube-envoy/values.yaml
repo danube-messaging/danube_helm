@@ -1,0 +1,36 @@
+# Default values for danube-envoy.
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+# If set, the chart will NOT create a ConfigMap and will mount this one instead.
+# Use this to provide a fully custom Envoy configuration.
+# See examples/envoy-proxy.yaml for the default config as a starting point.
+# IMPORTANT: The ConfigMap MUST contain a key named "envoy.yaml".
+existingConfigMap: ""
+
+image:
+  repository: envoyproxy/envoy
+  tag: "v1.31-latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort       # NodePort for Kind/local, LoadBalancer for cloud
+  port: 6650
+  nodePort: null       # set when type=NodePort to pin the port (e.g. 30650)
+
+# Address of the danube-core broker headless service.
+# The Envoy static cluster uses this for round-robin topic lookups.
+# Format: <release>-broker-headless.<namespace>.svc.cluster.local
+brokerHeadlessAddress: "danube-core-broker-headless.danube.svc.cluster.local"
+brokerPort: 6650
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

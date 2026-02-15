@@ -1,0 +1,122 @@
+{{- if not .Values.existingConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "danube-envoy.fullname" . }}-config
+  labels:
+    {{- include "danube-envoy.labels" . | nindent 4 }}
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+      - name: danube_ingress
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: {{ .Values.service.port }}
+        filter_chains:
+        - filters:
+          - name: envoy.filters.network.http_connection_manager
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+              stat_prefix: danube_proxy
+              codec_type: AUTO
+              http2_protocol_options: {}
+              http_filters:
+              # Lua filter: strip http(s):// scheme from x-danube-broker-url header
+              # so the Dynamic Forward Proxy can resolve the bare hostname:port.
+              - name: envoy.filters.http.lua
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                  inline_code: |
+                    function envoy_on_request(request_handle)
+                      local header = request_handle:headers():get("x-danube-broker-url")
+                      if header then
+                        header = header:gsub("^https?://", "")
+                        header = header:gsub("/.*$", "")
+                        request_handle:headers():replace("x-danube-broker-url", header)
+                      end
+                    end
+              # Dynamic Forward Proxy filter for header-based routing
+              - name: envoy.filters.http.dynamic_forward_proxy
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
+                  dns_cache_config:
+                    name: dynamic_dns_cache
+                    dns_lookup_family: V4_ONLY
+                    dns_refresh_rate: 5s
+              # Router (must be last)
+              - name: envoy.filters.http.router
+                typed_config:
+                  "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+              route_config:
+                name: local_route
+                virtual_hosts:
+                - name: danube_service
+                  domains: ["*"]
+                  routes:
+                  # Route 1: requests WITH x-danube-broker-url header → dynamic forward proxy
+                  - match:
+                      prefix: "/"
+                      headers:
+                      - name: x-danube-broker-url
+                        present_match: true
+                    route:
+                      cluster: dynamic_forward_proxy_cluster
+                      timeout: 0s
+                    typed_per_filter_config:
+                      envoy.filters.http.dynamic_forward_proxy:
+                        "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
+                        host_rewrite_header: x-danube-broker-url
+                  # Route 2: requests WITHOUT header → round-robin to any broker (topic lookups)
+                  - match:
+                      prefix: "/"
+                    route:
+                      cluster: danube_brokers
+                      timeout: 0s
+
+      clusters:
+      # Dynamic cluster: resolves broker address from x-danube-broker-url header on-the-fly
+      - name: dynamic_forward_proxy_cluster
+        lb_policy: CLUSTER_PROVIDED
+        cluster_type:
+          name: envoy.clusters.dynamic_forward_proxy
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+            allow_insecure_cluster_options: true
+            dns_cache_config:
+              name: dynamic_dns_cache
+              dns_lookup_family: V4_ONLY
+              dns_refresh_rate: 5s
+        typed_extension_protocol_options:
+          envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+            "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+            explicit_http_config:
+              http2_protocol_options: {}
+
+      # Static cluster: headless broker service for initial lookups (no header)
+      - name: danube_brokers
+        type: STRICT_DNS
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: danube_brokers
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: {{ .Values.brokerHeadlessAddress }}
+                    port_value: {{ .Values.brokerPort }}
+        typed_extension_protocol_options:
+          envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+            "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+            explicit_http_config:
+              http2_protocol_options: {}
+
+    admin:
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 9901
+{{- end }}

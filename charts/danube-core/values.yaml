@@ -36,11 +36,11 @@ broker:
     RUST_LOG: "danube_broker=info,danube_core=info"
   resources:
     requests:
-      cpu: 200m
-      memory: 256Mi
-    limits:
-      cpu: 500m
+      cpu: 250m
       memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
   persistence:
     enabled: true
     size: 10Gi
@@ -63,7 +63,7 @@ broker:
     targetCPU: 70
 
 etcd:
-  replicaCount: 1
+  replicaCount: 3
   image:
     repository: quay.io/coreos/etcd
     tag: "v3.5.9"
@@ -81,7 +81,7 @@ etcd:
   resources:
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
     limits:
       cpu: 500m
       memory: 512Mi
@@ -113,19 +113,3 @@ prometheus:
     enabled: false
     interval: 5s
     labels: {}
-
-ingress:
-  enabled: false
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
-    # Hash-based sticky routing: ensures requests with the same
-    # x-danube-broker-url header are routed to the same backend pod.
-    nginx.ingress.kubernetes.io/upstream-hash-by: "$http_x_danube_broker_url"
-  hosts:
-    - host: "broker.example.com"
-      paths:
-        - path: "/"
-          pathType: ImplementationSpecific
-          servicePort: "client"
-  tls: []

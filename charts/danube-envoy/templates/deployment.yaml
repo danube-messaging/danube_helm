@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "danube-envoy.fullname" . }}
+  labels:
+    {{- include "danube-envoy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "danube-envoy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "danube-envoy.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: envoy
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "-c"
+            - "/etc/envoy/envoy.yaml"
+            - "-l"
+            - "info"
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.port }}
+            - name: admin
+              containerPort: 9901
+          volumeMounts:
+            - name: config
+              mountPath: /etc/envoy
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: admin
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: admin
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+{{ toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ default (printf "%s-config" (include "danube-envoy.fullname" .)) .Values.existingConfigMap }}

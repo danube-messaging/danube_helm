@@ -1,13 +1,26 @@
 # Danube Helm Charts
 
-Modular Helm charts for deploying Danube messaging platform on Kubernetes.
+Modular Helm charts for deploying [Danube](https://github.com/danube-messaging/danube) messaging platform on Kubernetes.
 
-## Chart Structure
+## Charts
 
-This repository provides a modular approach to deploying Danube:
+| Chart | Description |
+|-------|-------------|
+| **[danube-envoy](charts/danube-envoy/)** | Envoy gRPC proxy for routing clients to the correct broker |
+| **[danube-core](charts/danube-core/)** | Core components: brokers (StatefulSet), etcd, Prometheus |
 
-- **`danube-core`**: Core components (3 brokers, ETCD, Prometheus) - required foundation
-- **Additional charts** (coming soon): Admin UI, connectors (Qdrant, DeltaLake, SurrealDB, MQTT, Webhook)
+Additional charts (coming soon): Admin UI, connectors (Qdrant, DeltaLake, SurrealDB, MQTT, Webhook).
+
+## Repository Structure
+
+```
+charts/
+├── danube-envoy/        # Envoy gRPC proxy (Deployment + NodePort/LoadBalancer)
+└── danube-core/         # Brokers, etcd, Prometheus
+    └── examples/        # Broker configs + values-minimal.yaml for Kind
+scripts/                 # Helper scripts
+setup_local_machine.md   # Step-by-step local deployment guide
+```
 
 ## Prerequisites
 
@@ -17,83 +30,102 @@ This repository provides a modular approach to deploying Danube:
 
 ## Quick Start
 
-### Install Core Components
+The deployment uses two charts: install the proxy first, discover its address,
+then install the core with that address.
+
+### 1. Install the Envoy Proxy
 
 ```sh
-# Manual setup (using examples config)
-kubectl create namespace danube --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace danube
+helm install danube-envoy ./charts/danube-envoy -n danube
+```
+
+### 2. Discover the Proxy Address
+
+```sh
+PROXY_PORT=$(kubectl get svc danube-envoy -n danube \
+  -o jsonpath='{.spec.ports[?(@.name=="grpc")].nodePort}')
+NODE_IP=$(kubectl get nodes \
+  -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+echo "Proxy address: ${NODE_IP}:${PROXY_PORT}"
+```
+
+### 3. Install Danube Core
+
+```sh
 kubectl create configmap danube-broker-config \
   --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml \
-  -n danube --dry-run=client -o yaml | kubectl apply -f -
-helm install danube-core ./charts/danube-core -n danube --create-namespace \
-  -f ./charts/danube-core/examples/values-minimal.yaml
+  -n danube
 
-# Helper script (creates namespace + ConfigMap, prints helm install command)
-./scripts/prepare_danube_core_release.sh \
-  -c ./charts/danube-core/examples/danube_broker.yml
+helm install danube-core ./charts/danube-core -n danube \
+  -f ./charts/danube-core/examples/values-minimal.yaml \
+  --set broker.externalAccess.connectUrl="${NODE_IP}:${PROXY_PORT}"
 ```
 
-### Add Optional Components (Coming Soon)
+### 4. Test
 
 ```sh
-# Install Admin UI
-helm install danube-admin ./charts/danube-admin
-
-# Install connectors as needed
-helm install danube-qdrant ./charts/danube-qdrant-connector
+danube-cli produce -s http://${NODE_IP}:${PROXY_PORT} \
+  -t /default/test_topic -m "Hello from Danube" -c 5
 ```
+
+For the full walkthrough (Kind cluster setup, verification, consumer testing),
+see **[setup_local_machine.md](setup_local_machine.md)**.
 
 ## Documentation
 
-For detailed configuration options, see the chart-specific documentation:
-
-- **[Danube Core Chart](charts/danube-core/README.md)**: Complete reference for all configuration parameters
+- **[Setup Local Machine](setup_local_machine.md)** — Complete local deployment guide with Kind
+- **[Danube Core Chart](charts/danube-core/README.md)** — Configuration reference for brokers, etcd, Prometheus
+- **[Envoy Proxy Example](charts/danube-envoy/examples/envoy-proxy.yaml)** — Reference for custom Envoy configurations
 
 ## Common Configuration Patterns
 
 ### Customize Broker Replicas
 
 ```sh
-helm install danube ./charts/danube-core --set broker.replicaCount=5
-```
-
-### Enable Ingress
-
-```sh
-helm install danube ./charts/danube-core \
-  --set ingress.enabled=true \
-  --set ingress.className=nginx \
-  --set ingress.hosts[0].host=danube.example.com
+helm install danube-core ./charts/danube-core -n danube \
+  --set broker.replicaCount=5
 ```
 
 ### Configure Resource Limits
 
 ```sh
-helm install danube ./charts/danube-core \
+helm install danube-core ./charts/danube-core -n danube \
   --set broker.resources.requests.memory=2Gi \
   --set broker.resources.limits.memory=4Gi
+```
+
+### Use Custom Envoy Configuration
+
+```sh
+# Create a ConfigMap from your custom config
+kubectl create configmap my-envoy-config \
+  --from-file=envoy.yaml=my-envoy.yaml -n danube
+
+# Install with the custom ConfigMap
+helm install danube-envoy ./charts/danube-envoy -n danube \
+  --set existingConfigMap=my-envoy-config
 ```
 
 ### Use Custom Values File
 
 ```sh
-helm install danube ./charts/danube-core -f my-custom-values.yaml
+helm install danube-core ./charts/danube-core -n danube \
+  -f my-custom-values.yaml
 ```
 
 ## Uninstallation
 
-To uninstall the Danube release:
-
 ```sh
-helm uninstall danube
+helm uninstall danube-core -n danube
+helm uninstall danube-envoy -n danube
 ```
 
-This command removes all the Kubernetes components associated with the chart and deletes the release.
-
-**Note**: PersistentVolumeClaims are not automatically deleted. Clean them up manually if needed:
+**Note**: PersistentVolumeClaims are not automatically deleted. Clean them up
+by deleting the namespace:
 
 ```sh
-kubectl delete pvc -l app.kubernetes.io/name=danube-core
+kubectl delete namespace danube
 ```
 
 ## Troubleshooting
@@ -101,23 +133,23 @@ kubectl delete pvc -l app.kubernetes.io/name=danube-core
 Get pod status:
 
 ```sh
-kubectl get pods -l app.kubernetes.io/name=danube-core
+kubectl get pods -n danube
 ```
 
 View logs:
 
 ```sh
 # Broker logs
-kubectl logs -l app.kubernetes.io/component=broker
+kubectl logs -l app.kubernetes.io/component=broker -n danube
 
 # ETCD logs
-kubectl logs -l app.kubernetes.io/component=etcd
+kubectl logs -l app.kubernetes.io/component=etcd -n danube
 
-# Prometheus logs
-kubectl logs -l app.kubernetes.io/component=prometheus
+# Envoy proxy logs
+kubectl logs -l app.kubernetes.io/name=danube-envoy -n danube
 ```
 
-For detailed troubleshooting, see the [Danube Core Chart Documentation](charts/danube-core/README.md#troubleshooting).
+For more details, see the [Troubleshooting section](setup_local_machine.md#troubleshooting) in the setup guide.
 
 ## License
 

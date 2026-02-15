@@ -1,7 +1,11 @@
 # Setup Danube on a Local Kubernetes Cluster
 
-This guide shows how to deploy Danube on a local [Kind](https://kind.sigs.k8s.io/) cluster
-and connect to it from your machine.
+This guide deploys a 3-broker Danube cluster with an Envoy proxy on a local
+[Kind](https://kind.sigs.k8s.io/) cluster and tests producer/consumer connectivity.
+
+The deployment uses two Helm charts:
+- **danube-envoy** — Envoy gRPC proxy (installed first to get the proxy address)
+- **danube-core** — Brokers, etcd, Prometheus (installed with proxy address)
 
 ## Prerequisites
 
@@ -9,6 +13,7 @@ and connect to it from your machine.
 - [Kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm](https://helm.sh/docs/intro/install/)
+- [danube-cli](https://github.com/danube-messaging/danube) (for testing)
 
 ## 1. Create the Kind Cluster
 
@@ -17,163 +22,146 @@ kind create cluster
 kubectl cluster-info --context kind-kind
 ```
 
-## 2. Install Danube
+## 2. Install the Envoy Proxy
 
-### Create the namespace and broker ConfigMap
-
-The broker configuration is provided via a ConfigMap created from the example config file:
+Install the proxy first so you can discover the external address before deploying
+the brokers.
 
 ```bash
 kubectl create namespace danube
+helm install danube-envoy ./charts/danube-envoy -n danube
+```
+
+Wait for the proxy pod to become ready:
+
+```bash
+kubectl get pods -n danube -w
+```
+
+## 3. Discover the Proxy Address
+
+```bash
+PROXY_PORT=$(kubectl get svc danube-envoy -n danube \
+  -o jsonpath='{.spec.ports[?(@.name=="grpc")].nodePort}')
+NODE_IP=$(kubectl get nodes \
+  -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+echo "Proxy address: ${NODE_IP}:${PROXY_PORT}"
+```
+
+Save this address — you will use it for both the broker `connectUrl` and for
+`danube-cli` connections.
+
+## 4. Install Danube Core
+
+Create the broker ConfigMap and install the chart with the proxy address:
+
+```bash
 kubectl create configmap danube-broker-config \
   --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml \
   -n danube
-```
 
-### Option A: Minimal Setup (1 broker, local development)
-
-Best for getting started. Uses 1 broker, no persistence, no ingress.
-
-```bash
-helm install danube-core ./charts/danube-core -n danube \
-  -f ./charts/danube-core/examples/values-minimal.yaml
-```
-
-Access the broker via port-forward:
-
-```bash
-kubectl port-forward svc/danube-core-broker 6650:6650 -n danube
-```
-
-Your client connects to `http://localhost:6650`. Since there is only 1 broker,
-no redirects happen and port-forward is sufficient.
-
-### Option B: Multi-Broker with Ingress (proxy mode)
-
-For multi-broker deployments, external clients connect through an nginx ingress
-that routes gRPC traffic to the correct broker pod. This is called **proxy mode**:
-
-- Each broker advertises a per-pod `broker_url` (headless DNS, internal identity)
-  and a shared `connect_url` (the ingress address).
-- The client sends an `x-danube-broker-url` gRPC metadata header on every RPC.
-- The nginx ingress uses `upstream-hash-by` on this header to route consistently
-  to the same backend pod.
-
-#### Install the NGINX Ingress Controller
-
-```bash
-helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
-helm install nginx-ingress ingress-nginx/ingress-nginx \
-  --set controller.service.type=NodePort \
-  --set controller.config.http2=true
-```
-
-Find the assigned NodePort for HTTP (port 80):
-
-```bash
-kubectl get svc nginx-ingress-ingress-nginx-controller \
-  -o jsonpath='{.spec.ports[?(@.port==80)].nodePort}'
-```
-
-Note this port (e.g., `30115`).
-
-#### Get the Kind node IP
-
-```bash
-kubectl get nodes -o wide
-# Use the INTERNAL-IP (e.g., 172.20.0.2)
-```
-
-Add the ingress host to `/etc/hosts`:
-
-```bash
-# Replace 172.20.0.2 with your node's INTERNAL-IP
-echo "172.20.0.2 broker.local" | sudo tee -a /etc/hosts
-```
-
-#### Deploy with proxy mode
-
-```bash
 helm install danube-core ./charts/danube-core -n danube \
   -f ./charts/danube-core/examples/values-minimal.yaml \
-  --set broker.replicaCount=3 \
-  --set broker.externalAccess.connectUrl="broker.local:30115" \
-  --set ingress.enabled=true \
-  --set 'ingress.hosts[0].host=broker.local' \
-  --set 'ingress.hosts[0].paths[0].path=/' \
-  --set 'ingress.hosts[0].paths[0].pathType=ImplementationSpecific' \
-  --set 'ingress.hosts[0].paths[0].servicePort=client'
+  --set broker.externalAccess.connectUrl="${NODE_IP}:${PROXY_PORT}"
 ```
 
-Your client connects to `http://broker.local:30115`.
+This deploys:
+- **3 broker pods** (StatefulSet) with persistence enabled
+- **1 etcd pod** for metadata storage
+- **1 Prometheus pod** for metrics
 
-> **Note**: Proxy mode requires a broker image that supports the `--connect-url` CLI flag.
-> Without it, the broker sets both `broker_url` and `connect_url` to the same internal
-> address, and external clients cannot reach redirected brokers.
+Brokers start in proxy mode from the beginning — no upgrade or restart needed.
 
-### Option C: Install from Helm Repository
+Wait for all pods to become ready:
 
 ```bash
-helm repo add danube https://danrusei.github.io/danube_helm
-helm repo update
-
-kubectl create namespace danube
-kubectl create configmap danube-broker-config \
-  --from-file=danube_broker.yml=./charts/danube-core/examples/danube_broker.yml \
-  -n danube
-
-helm install danube-core danube/danube-core -n danube \
-  -f ./charts/danube-core/examples/values-minimal.yaml
+kubectl get pods -n danube -w
 ```
 
-## 3. Verify the Installation
+> **Note**: The first broker pod may restart a few times (`CrashLoopBackOff`)
+> while waiting for etcd to become ready. This is normal — Kubernetes will keep
+> restarting it until etcd accepts connections, then the remaining brokers start
+> cleanly.
 
-Check that pods are running:
+## 5. Verify the Installation
 
 ```bash
 kubectl get pods -n danube
-
-NAME                                  READY   STATUS    RESTARTS   AGE
-danube-core-broker-0                  1/1     Running   0          2m
-danube-core-etcd-0                    1/1     Running   0          2m
-danube-core-prometheus-xxxxxxxxx      1/1     Running   0          2m
 ```
 
-Check services:
+Expected output (all Running):
+
+```
+NAME                                      READY   STATUS    AGE
+danube-core-broker-0                      1/1     Running   2m
+danube-core-broker-1                      1/1     Running   2m
+danube-core-broker-2                      1/1     Running   2m
+danube-core-etcd-0                        1/1     Running   2m
+danube-core-prometheus-xxxxxxxxx          1/1     Running   2m
+danube-envoy-xxxxxxxxx                    1/1     Running   5m
+```
+
+Verify brokers registered with proxy mode:
 
 ```bash
-kubectl get svc -n danube
-
-NAME                         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
-danube-core-broker           ClusterIP   10.96.40.244    <none>        6650/TCP,50051/TCP,9040/TCP  2m
-danube-core-broker-headless  ClusterIP   None            <none>        6650/TCP,50051/TCP,9040/TCP  2m
-danube-core-etcd             ClusterIP   10.96.232.70    <none>        2379/TCP                     2m
-danube-core-etcd-headless    ClusterIP   None            <none>        2379/TCP,2380/TCP            2m
-danube-core-prometheus       ClusterIP   10.96.100.50    <none>        9090/TCP                     2m
+kubectl logs danube-core-broker-0 -n danube | grep "broker registered"
 ```
 
-Check broker logs:
+You should see different `broker_url` per pod and a shared `connect_url` pointing
+to the proxy address, for example:
+
+```
+broker registered broker_url=http://danube-core-broker-0.danube-core-broker-headless.danube.svc.cluster.local:6650 connect_url=http://172.19.0.2:30445
+```
+
+## 6. Test Producer and Consumer
+
+Use the proxy address discovered in step 3:
+
+**Terminal 1 — Produce messages:**
 
 ```bash
-kubectl logs danube-core-broker-0 -n danube
+danube-cli produce \
+  -s http://${NODE_IP}:${PROXY_PORT} \
+  -t /default/test_topic \
+  -m "Hello from Danube" -c 5
 ```
 
-## 4. Inspect etcd (optional)
+**Terminal 2 — Consume messages:**
 
-Port-forward the etcd service:
+```bash
+danube-cli consume \
+  -s http://${NODE_IP}:${PROXY_PORT} \
+  -t /default/test_topic \
+  -m test_sub
+```
+
+Then produce more messages in terminal 1 — the consumer should receive them in
+real time.
+
+## How Proxy Mode Works
+
+In a multi-broker cluster, topics are assigned to specific brokers. When a client
+connects, it may need to be redirected to the broker that owns its topic.
+
+- Each broker advertises a per-pod **`broker_url`** (internal headless DNS) and a
+  shared **`connect_url`** (the Envoy proxy address).
+- The client always connects to the proxy (`connect_url`).
+- The client first does a **topic lookup** (round-robined to any broker) to
+  discover which broker owns the topic.
+- On subsequent gRPC calls, the client sends an **`x-danube-broker-url`** metadata
+  header with the target broker's internal address.
+- Envoy's **Dynamic Forward Proxy** reads this header, resolves the broker's
+  headless DNS name inside the cluster, and routes the request to the correct pod.
+
+## Inspect etcd (optional)
 
 ```bash
 kubectl port-forward svc/danube-core-etcd 2379:2379 -n danube
-```
-
-Then query with etcdctl:
-
-```bash
 etcdctl --endpoints=http://localhost:2379 get --prefix /
 ```
 
-## 5. Access Prometheus (optional)
+## Access Prometheus (optional)
 
 ```bash
 kubectl port-forward svc/danube-core-prometheus 9090:9090 -n danube
@@ -181,22 +169,60 @@ kubectl port-forward svc/danube-core-prometheus 9090:9090 -n danube
 
 Open `http://localhost:9090` in your browser.
 
-## Resource Sizing
+## Troubleshooting
 
-The minimal configuration is suitable for testing. For production:
+### Broker pods stuck in ContainerCreating
 
-**Small to Medium Load:**
-- CPU: 500m–1 request, 1–2 limit
-- Memory: 512Mi–1Gi request, 1–2Gi limit
+On first install, Kind must pull the broker image (`~50MB`). This can take 1-2
+minutes depending on your connection. Check progress with:
 
-**Heavy Load:**
-- CPU: 1–2 request, 2–4 limit
-- Memory: 1–2Gi request, 2–4Gi limit
+```bash
+kubectl describe pod danube-core-broker-0 -n danube | tail -5
+```
+
+### Envoy proxy not routing correctly
+
+Enable debug logging temporarily to see request routing decisions:
+
+```bash
+kubectl exec deployment/danube-envoy -n danube -- \
+  wget -qO- http://localhost:9901/logging?level=debug
+```
+
+Check logs for `cluster '...' match for URL` lines to see which cluster each
+request is routed to. Revert with `level=info`.
+
+## Install from Helm Repository
+
+Instead of installing from the local chart, you can use the published Helm repo:
+
+```bash
+helm repo add danube https://danrusei.github.io/danube_helm
+helm repo update
+
+kubectl create namespace danube
+helm install danube-envoy danube/danube-envoy -n danube
+
+# Discover proxy address (same as step 3 above)
+PROXY_PORT=$(kubectl get svc danube-envoy -n danube \
+  -o jsonpath='{.spec.ports[?(@.name=="grpc")].nodePort}')
+NODE_IP=$(kubectl get nodes \
+  -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+
+kubectl create configmap danube-broker-config \
+  --from-file=danube_broker.yml=danube_broker.yml \
+  -n danube
+
+helm install danube-core danube/danube-core -n danube \
+  -f values-minimal.yaml \
+  --set broker.externalAccess.connectUrl="${NODE_IP}:${PROXY_PORT}"
+```
 
 ## Cleanup
 
 ```bash
 helm uninstall danube-core -n danube
+helm uninstall danube-envoy -n danube
 kubectl delete namespace danube
 kind delete cluster
 ```
