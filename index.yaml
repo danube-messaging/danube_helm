@@ -1,0 +1,51 @@
+apiVersion: v1
+entries:
+  danube-connector:
+  - apiVersion: v2
+    appVersion: v0.2.1
+    created: "2026-02-16T18:25:43.284594264Z"
+    description: Generic chart for deploying Danube source and sink connectors
+    digest: f97b378744e34ede2e66269894593603bc7d17efef7ae411b9a3db51f8ab7691
+    icon: https://raw.githubusercontent.com/danube-messaging/danube/main/wave.png
+    name: danube-connector
+    type: application
+    urls:
+    - https://github.com/danube-messaging/danube_helm/releases/download/danube-connector-0.2.0/danube-connector-0.2.0.tgz
+    version: 0.2.0
+  danube-core:
+  - apiVersion: v2
+    appVersion: v0.7.3
+    created: "2026-02-16T18:25:43.420390257Z"
+    description: Danube core chart (brokers + etcd + Prometheus)
+    digest: 02e3a8d3c3c9d05eae505cf3cd703ecee9e6e84ee56d18f4346c489241a98fdd
+    icon: https://raw.githubusercontent.com/danube-messaging/danube/main/wave.png
+    name: danube-core
+    type: application
+    urls:
+    - https://github.com/danube-messaging/danube_helm/releases/download/danube-core-0.2.0/danube-core-0.2.0.tgz
+    version: 0.2.0
+  danube-envoy:
+  - apiVersion: v2
+    appVersion: v1.31
+    created: "2026-02-16T18:25:43.625034037Z"
+    description: Envoy gRPC proxy for Danube broker routing
+    digest: d4c00db4d8a8c3c2153bb03675de29c6f981f3b210756eb781e886bea18b32be
+    icon: https://raw.githubusercontent.com/danube-messaging/danube/main/wave.png
+    name: danube-envoy
+    type: application
+    urls:
+    - https://github.com/danube-messaging/danube_helm/releases/download/danube-envoy-0.2.0/danube-envoy-0.2.0.tgz
+    version: 0.2.0
+  danube-ui:
+  - apiVersion: v2
+    appVersion: v0.7.3
+    created: "2026-02-16T18:25:43.773682023Z"
+    description: Admin server and web UI for Danube messaging cluster
+    digest: 3a2954843e15c915d27ed50cc8238c8bd24ff6734646bfd6df940b3a198b19f3
+    icon: https://raw.githubusercontent.com/danube-messaging/danube/main/wave.png
+    name: danube-ui
+    type: application
+    urls:
+    - https://github.com/danube-messaging/danube_helm/releases/download/danube-ui-0.2.0/danube-ui-0.2.0.tgz
+    version: 0.2.0
+generated: "2026-02-16T18:25:43.773691848Z"
