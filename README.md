@@ -33,6 +33,10 @@ setup_local_machine.md   # Step-by-step local deployment guide
 The deployment uses two charts: install the proxy first, discover its address,
 then install the core with that address.
 
+> **Shortcut**: If you cloned this repo, run
+> `./scripts/prepare_danube_core_release.sh -c ./charts/danube-core/examples/danube_broker.yml`
+> to automate steps 1–3 below. See `--help` for options.
+
 ### 1. Install the Envoy Proxy
 
 ```sh

@@ -22,6 +22,21 @@ kind create cluster
 kubectl cluster-info --context kind-kind
 ```
 
+## Quick Alternative: Helper Script
+
+If you cloned this repository, you can run steps 2–4 with a single command:
+
+```bash
+./scripts/prepare_danube_core_release.sh \
+  -c ./charts/danube-core/examples/danube_broker.yml
+```
+
+The script creates the namespace, installs the Envoy proxy, discovers the proxy
+address, creates the broker ConfigMap, and prints the `helm install` command for
+`danube-core`. Run `./scripts/prepare_danube_core_release.sh --help` for options.
+
+If you prefer to run each step manually, continue below.
+
 ## 2. Install the Envoy Proxy
 
 Install the proxy first so you can discover the external address before deploying
