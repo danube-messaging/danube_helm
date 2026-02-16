@@ -54,7 +54,7 @@ ui:
 - [x] Service discovery: broker and prometheus endpoints via values
 - [ ] Add `examples/mcp/` configs for Claude Desktop and Windsurf
 - [ ] Document external MCP usage (stdio + port-forward or external access)
-- [ ] Test on Kind cluster with danube-core
+- [x] Test on Kind cluster with danube-core
 
 ---
 
@@ -91,47 +91,36 @@ danube-admin serve --mode mcp \
 
 ---
 
-### Phase 3: Connector Charts — Data Pipeline Add-ons
+### Phase 3: `danube-connector` — Generic Connector Chart
 
-Each connector follows the same template pattern.
+A single generic chart that deploys any Danube connector. Each connector is installed
+as its own Helm release with a connector-specific values file.
 
-#### Common Connector Structure
-
-```yaml
-connector:
-  image:
-    repository: ghcr.io/danube-messaging/danube-sink-<NAME>
-    tag: "v0.2.1"
-  replicaCount: 1
-  config: {}           # Connector-specific TOML config (mounted as ConfigMap)
-  env: {}              # Environment variables (secrets via envFrom)
-  secrets: {}          # Kubernetes secrets for credentials
-  metricsPort: 9090
-  resources:
-    requests: { cpu: 100m, memory: 128Mi }
-    limits:   { cpu: 500m, memory: 512Mi }
+```bash
+helm install qdrant-sink danube/danube-connector -n danube -f examples/sink-qdrant.yaml
+helm install mqtt-source danube/danube-connector -n danube -f examples/source-mqtt.yaml
 ```
 
-#### Planned Connectors
+The chart creates: ConfigMap (TOML config), Deployment, Service (metrics + extra ports), Secret (optional).
 
-| Chart | Image | Key Config | External Dependencies |
-|-------|-------|------------|----------------------|
-| `danube-connector-qdrant` | `danube-sink-qdrant` | `qdrant.url`, `topic_mappings`, `vector_dimension` | Qdrant |
-| `danube-connector-deltalake` | `danube-sink-deltalake` | `deltalake.storage_backend`, `s3_*`, `topic_mappings` | S3/MinIO/GCS |
-| `danube-connector-surrealdb` | `danube-sink-surrealdb` | `surrealdb.*`, `topic_mappings` | SurrealDB |
-| `danube-connector-webhook` | `danube-source-webhook` | `webhook.endpoints`, `api_key` | None (exposes HTTP) |
-| `danube-connector-mqtt` | `danube-source-mqtt` | `mqtt.broker_url`, `topic_mappings` | MQTT broker |
+#### Example Values Files
+
+| File | Image | External Dependencies |
+|------|-------|----------------------|
+| `sink-qdrant.yaml` | `danube-sink-qdrant` | Qdrant |
+| `sink-deltalake.yaml` | `danube-sink-deltalake` | S3/MinIO/GCS |
+| `sink-surrealdb.yaml` | `danube-sink-surrealdb` | SurrealDB |
+| `source-mqtt.yaml` | `danube-source-mqtt` | MQTT broker |
+| `source-webhook.yaml` | `danube-source-webhook` | None (exposes HTTP) |
 
 #### Tasks
 
-- [ ] Create connector chart template (shared pattern)
-- [ ] `charts/danube-connector-qdrant/`
-- [ ] `charts/danube-connector-deltalake/`
-- [ ] `charts/danube-connector-surrealdb/`
-- [ ] `charts/danube-connector-webhook/` (with Ingress)
-- [ ] `charts/danube-connector-mqtt/`
-- [ ] Each connector: ConfigMap from TOML values, secret references, metrics port
-- [ ] Optional init Jobs for schema/topic creation
+- [x] Create generic `charts/danube-connector/` chart
+- [x] ConfigMap from inline TOML, Secret for credentials, extra file mounts
+- [x] Extra ports support (webhook HTTP server)
+- [x] Example values files for all 5 connectors
+- [x] Chart README with usage instructions
+- [ ] Test on Kind cluster
 
 ---
 

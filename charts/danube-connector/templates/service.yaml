@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "danube-connector.fullname" . }}
+  labels:
+    {{- include "danube-connector.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: metrics
+      port: {{ .Values.metricsPort }}
+      targetPort: metrics
+    {{- range .Values.extraPorts }}
+    - name: {{ .name }}
+      port: {{ .servicePort }}
+      targetPort: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "danube-connector.selectorLabels" . | nindent 4 }}

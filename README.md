@@ -9,8 +9,7 @@ Modular Helm charts for deploying [Danube](https://github.com/danube-messaging/d
 | **[danube-envoy](charts/danube-envoy/)** | Envoy gRPC proxy for routing clients to the correct broker |
 | **[danube-core](charts/danube-core/)** | Core components: brokers (StatefulSet), etcd, Prometheus |
 | **[danube-ui](charts/danube-ui/)** | Admin server + web dashboard for cluster monitoring |
-
-Additional charts (coming soon): connectors (Qdrant, DeltaLake, SurrealDB, MQTT, Webhook).
+| **[danube-connector](charts/danube-connector/)** | Generic chart for deploying any Danube source/sink connector |
 
 ## Repository Structure
 
@@ -19,7 +18,9 @@ charts/
 ├── danube-envoy/        # Envoy gRPC proxy (Deployment + NodePort/LoadBalancer)
 ├── danube-core/         # Brokers, etcd, Prometheus
 │   └── examples/        # Broker configs + values-minimal.yaml for Kind
-└── danube-ui/           # Admin server + web dashboard
+├── danube-ui/           # Admin server + web dashboard
+└── danube-connector/    # Generic connector (one chart, many connectors)
+    └── examples/        # Values files per connector type
 scripts/                 # Helper scripts
 setup_local_machine.md   # Step-by-step local deployment guide
 ```

@@ -1,0 +1,64 @@
+# Webhook Source Connector
+# Install: helm install webhook-source danube/danube-connector -n danube -f source-webhook.yaml
+
+image:
+  repository: ghcr.io/danube-messaging/danube-source-webhook
+  tag: "latest"
+
+# The webhook connector exposes an HTTP server that receives external traffic.
+extraPorts:
+  - name: http
+    containerPort: 8080
+    servicePort: 8080
+
+env:
+  CONNECTOR_CONFIG_PATH: /etc/connector.toml
+  DANUBE_SERVICE_URL: "http://danube-core-broker:6650"
+  CONNECTOR_NAME: "webhook-source"
+  RUST_LOG: "info,danube_source_webhook=debug"
+
+secretEnv:
+  WEBHOOK_API_KEY: "change-me-in-production"
+
+config:
+  inline: |
+    danube_service_url = "http://danube-core-broker:6650"
+    connector_name = "webhook-source"
+
+    [processing]
+    batch_size = 100
+    poll_interval_ms = 100
+    metrics_port = 9090
+
+    [retry]
+    initial_interval_ms = 1000
+    max_interval_ms = 60000
+    max_retries = 5
+
+    [server]
+    host = "0.0.0.0"
+    port = 8080
+    timeout_seconds = 30
+    max_body_size = 1048576
+
+    [auth]
+    type = "apikey"
+    secret_env = "WEBHOOK_API_KEY"
+    header = "x-api-key"
+
+    [rate_limit]
+    requests_per_second = 100
+    burst_size = 200
+    per_ip_enabled = true
+    per_ip_requests_per_second = 10
+
+    [[endpoints]]
+    path = "/webhooks/stripe/payments"
+    danube_topic = "/stripe/payments"
+    partitions = 4
+    reliable_dispatch = true
+
+    [[endpoints]]
+    path = "/webhooks/generic"
+    danube_topic = "/webhooks/generic"
+    reliable_dispatch = true

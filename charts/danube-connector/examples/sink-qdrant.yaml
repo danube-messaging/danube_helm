@@ -1,0 +1,51 @@
+# Qdrant Sink Connector
+# Install: helm install qdrant-sink danube/danube-connector -n danube -f sink-qdrant.yaml
+
+image:
+  repository: ghcr.io/danube-messaging/danube-sink-qdrant
+  tag: "latest"
+
+env:
+  CONNECTOR_CONFIG_PATH: /etc/connector.toml
+  DANUBE_SERVICE_URL: "http://danube-core-broker:6650"
+  CONNECTOR_NAME: "qdrant-sink"
+  QDRANT_URL: "http://qdrant:6334"
+  RUST_LOG: "info,danube_sink_qdrant=debug"
+
+# Uncomment if using Qdrant Cloud with API key
+# secretEnv:
+#   QDRANT_API_KEY: "your-api-key"
+
+config:
+  inline: |
+    danube_service_url = "http://danube-core-broker:6650"
+    connector_name = "qdrant-sink"
+
+    [retry]
+    max_retries = 3
+    retry_backoff_ms = 1000
+    max_backoff_ms = 30000
+
+    [processing]
+    batch_size = 100
+    batch_timeout_ms = 1000
+    poll_interval_ms = 100
+    metrics_port = 9090
+    log_level = "info"
+
+    [qdrant]
+    url = "http://qdrant:6334"
+    batch_size = 50
+    batch_timeout_ms = 1000
+    timeout_secs = 30
+
+    [[qdrant.topic_mappings]]
+    topic = "/default/vectors"
+    subscription = "qdrant-sink-sub"
+    subscription_type = "Exclusive"
+    collection_name = "vectors"
+    vector_dimension = 384
+    distance = "Cosine"
+    auto_create_collection = true
+    include_danube_metadata = true
+    expected_schema_subject = "embeddings-v1"

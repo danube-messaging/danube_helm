@@ -1,0 +1,26 @@
+{{- if and .Values.config.inline (not .Values.config.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "danube-connector.fullname" . }}-config
+  labels:
+    {{- include "danube-connector.labels" . | nindent 4 }}
+data:
+  connector.toml: |
+    {{- .Values.config.inline | nindent 4 }}
+{{- end }}
+---
+{{- range $name, $spec := .Values.extraFiles }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "danube-connector.fullname" $ }}-{{ $name }}
+  labels:
+    {{- include "danube-connector.labels" $ | nindent 4 }}
+data:
+  {{- range $fileName, $content := $spec.files }}
+  {{ $fileName }}: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+---
+{{- end }}

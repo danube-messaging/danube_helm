@@ -1,0 +1,85 @@
+# MQTT Source Connector
+# Install: helm install mqtt-source danube/danube-connector -n danube -f source-mqtt.yaml
+
+image:
+  repository: ghcr.io/danube-messaging/danube-source-mqtt
+  tag: "latest"
+
+env:
+  CONNECTOR_CONFIG_PATH: /etc/connector.toml
+  DANUBE_SERVICE_URL: "http://danube-core-broker:6650"
+  CONNECTOR_NAME: "mqtt-source"
+  MQTT_BROKER_HOST: "mosquitto"
+  MQTT_BROKER_PORT: "1883"
+  RUST_LOG: "info,danube_source_mqtt=info"
+
+# Uncomment if MQTT broker requires authentication
+# secretEnv:
+#   MQTT_USERNAME: "mqtt_user"
+#   MQTT_PASSWORD: "mqtt_pass"
+
+# Mount JSON schema files for topic validation
+extraFiles:
+  schemas:
+    mountPath: /etc/schemas
+    files:
+      sensor-data.json: |
+        {
+          "type": "object",
+          "properties": {
+            "device_id": {"type": "string"},
+            "sensor_type": {"type": "string"},
+            "value": {"type": "number"},
+            "unit": {"type": "string"},
+            "timestamp": {"type": "string"}
+          },
+          "required": ["device_id", "sensor_type", "value", "timestamp"]
+        }
+
+config:
+  inline: |
+    danube_service_url = "http://danube-core-broker:6650"
+    connector_name = "mqtt-source"
+
+    [retry]
+    max_retries = 3
+    retry_backoff_ms = 1000
+    max_backoff_ms = 30000
+
+    [processing]
+    batch_size = 1000
+    batch_timeout_ms = 1000
+    poll_interval_ms = 100
+    metrics_port = 9090
+    log_level = "info"
+
+    [mqtt]
+    broker_host = "mosquitto"
+    broker_port = 1883
+    client_id = "danube-connector-1"
+    use_tls = false
+    keep_alive_secs = 60
+    connection_timeout_secs = 30
+    max_packet_size = 10485760
+    clean_session = true
+    include_metadata = true
+
+    [[mqtt.topic_mappings]]
+    mqtt_topic = "sensors/+/zone1"
+    danube_topic = "/iot/sensors_zone1"
+    qos = "AtLeastOnce"
+    partitions = 4
+
+    [[mqtt.topic_mappings]]
+    mqtt_topic = "devices/+/telemetry"
+    danube_topic = "/iot/device_telemetry"
+    qos = "AtLeastOnce"
+    partitions = 2
+
+    [[schemas]]
+    topic = "/iot/sensors_zone1"
+    subject = "sensor-telemetry-v1"
+    schema_type = "json_schema"
+    schema_file = "/etc/schemas/sensor-data.json"
+    auto_register = true
+    version_strategy = "latest"

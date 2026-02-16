@@ -1,0 +1,65 @@
+# Default values for danube-connector.
+# Override these per connector type using example values files in examples/.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ""   # REQUIRED: e.g. ghcr.io/danube-messaging/danube-sink-qdrant
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# -- Connector TOML configuration.
+# Provide EITHER configFile (path to a local TOML file) OR configInline (inline TOML content).
+# configFile is used with --set-file config.file=connector.toml
+# configInline is used when embedding the TOML directly in values.yaml
+config:
+  # Provide the TOML content inline (takes precedence over existingConfigMap)
+  inline: ""
+  # Use an existing ConfigMap instead of creating one
+  existingConfigMap: ""
+  # Mount path inside the container
+  mountPath: /etc/connector.toml
+
+# -- Extra files to mount (e.g. JSON schemas).
+# Each entry creates a ConfigMap and mounts it at the specified path.
+extraFiles: {}
+  # schemas:
+  #   mountPath: /etc/schemas
+  #   files:
+  #     sensor-data.json: |
+  #       {"type": "object", "properties": {"device_id": {"type": "string"}}}
+
+# -- Environment variables (non-secret).
+env:
+  CONNECTOR_CONFIG_PATH: /etc/connector.toml
+  # DANUBE_SERVICE_URL: "http://danube-core-broker:6650"
+
+# -- Secret environment variables (stored in a Kubernetes Secret).
+secretEnv: {}
+  # AWS_ACCESS_KEY_ID: minioadmin
+  # AWS_SECRET_ACCESS_KEY: minioadmin
+
+# -- Use an existing Kubernetes Secret for environment variables.
+existingSecret: ""
+
+# -- Metrics port exposed by the connector.
+metricsPort: 9090
+
+# -- Extra ports to expose (e.g. webhook HTTP server).
+# Each entry becomes a port on the Deployment and Service.
+extraPorts: []
+  # - name: http
+  #   containerPort: 8080
+  #   servicePort: 8080
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
