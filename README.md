@@ -8,16 +8,18 @@ Modular Helm charts for deploying [Danube](https://github.com/danube-messaging/d
 |-------|-------------|
 | **[danube-envoy](charts/danube-envoy/)** | Envoy gRPC proxy for routing clients to the correct broker |
 | **[danube-core](charts/danube-core/)** | Core components: brokers (StatefulSet), etcd, Prometheus |
+| **[danube-ui](charts/danube-ui/)** | Admin server + web dashboard for cluster monitoring |
 
-Additional charts (coming soon): Admin UI, connectors (Qdrant, DeltaLake, SurrealDB, MQTT, Webhook).
+Additional charts (coming soon): connectors (Qdrant, DeltaLake, SurrealDB, MQTT, Webhook).
 
 ## Repository Structure
 
 ```
 charts/
 ├── danube-envoy/        # Envoy gRPC proxy (Deployment + NodePort/LoadBalancer)
-└── danube-core/         # Brokers, etcd, Prometheus
-    └── examples/        # Broker configs + values-minimal.yaml for Kind
+├── danube-core/         # Brokers, etcd, Prometheus
+│   └── examples/        # Broker configs + values-minimal.yaml for Kind
+└── danube-ui/           # Admin server + web dashboard
 scripts/                 # Helper scripts
 setup_local_machine.md   # Step-by-step local deployment guide
 ```
@@ -76,6 +78,16 @@ danube-cli produce -s http://${NODE_IP}:${PROXY_PORT} \
 For the full walkthrough (Kind cluster setup, verification, consumer testing),
 see **[setup_local_machine.md](setup_local_machine.md)**.
 
+### 5. Add the Web Dashboard (optional)
+
+```sh
+helm install danube-ui ./charts/danube-ui -n danube
+kubectl port-forward svc/danube-ui-frontend 8081:80 -n danube
+```
+
+Open **http://localhost:8081** for real-time cluster status, topic management, and
+schema registry browsing.
+
 ## Documentation
 
 - **[Setup Local Machine](setup_local_machine.md)** — Complete local deployment guide with Kind
@@ -121,6 +133,7 @@ helm install danube-core ./charts/danube-core -n danube \
 ## Uninstallation
 
 ```sh
+helm uninstall danube-ui -n danube   # if installed
 helm uninstall danube-core -n danube
 helm uninstall danube-envoy -n danube
 ```
@@ -151,6 +164,9 @@ kubectl logs -l app.kubernetes.io/component=etcd -n danube
 
 # Envoy proxy logs
 kubectl logs -l app.kubernetes.io/name=danube-envoy -n danube
+
+# Admin server logs
+kubectl logs -l app.kubernetes.io/component=admin -n danube
 ```
 
 For more details, see the [Troubleshooting section](setup_local_machine.md#troubleshooting) in the setup guide.

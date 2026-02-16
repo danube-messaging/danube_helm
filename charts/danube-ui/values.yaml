@@ -1,0 +1,52 @@
+# Default values for danube-ui.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# -- danube-admin: HTTP API server that bridges the UI to the Danube cluster.
+admin:
+  image:
+    repository: ghcr.io/danube-messaging/danube-admin
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  config:
+    # Broker admin gRPC endpoint.
+    # Default assumes danube-core was installed with release name "danube-core"
+    # in the same namespace. Override if using a different release name or namespace.
+    brokerEndpoint: "danube-core-broker:50051"
+    # Prometheus URL for metrics queries.
+    prometheusUrl: "http://danube-core-prometheus:9090"
+    requestTimeoutMs: 5000
+    cacheTtlMs: 3000
+    # CORS origin for the admin UI. Auto-constructed from the UI service if empty.
+    corsAllowOrigin: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# -- danube-admin-ui: Nginx-served React web dashboard.
+ui:
+  enabled: true
+  image:
+    repository: ghcr.io/danube-messaging/danube-admin-ui
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+    # Set to NodePort for local access without port-forwarding
+    nodePort: null
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

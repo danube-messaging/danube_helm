@@ -154,6 +154,46 @@ danube-cli consume \
 Then produce more messages in terminal 1 — the consumer should receive them in
 real time.
 
+## 7. Install the Web Dashboard (optional)
+
+The `danube-ui` chart adds a web dashboard for cluster monitoring, topic
+management, and schema registry browsing.
+
+```bash
+helm install danube-ui ./charts/danube-ui -n danube
+```
+
+Wait for the pods to be ready:
+
+```bash
+kubectl get pods -n danube -l app.kubernetes.io/name=danube-ui
+```
+
+You should see two pods — the admin API server and the frontend:
+
+```
+NAME                                  READY   STATUS    AGE
+danube-ui-admin-xxxxxxxxx             1/1     Running   30s
+danube-ui-frontend-xxxxxxxxx          1/1     Running   30s
+```
+
+Forward the UI port to your local machine:
+
+```bash
+kubectl port-forward svc/danube-ui-frontend 8081:80 -n danube
+```
+
+Open **http://localhost:8081** in your browser.
+
+> **Note**: The admin server connects to `danube-core-broker:50051` and
+> `danube-core-prometheus:9090` by default. If you used a different release name
+> for danube-core, override with:
+> ```bash
+> helm install danube-ui ./charts/danube-ui -n danube \
+>   --set admin.config.brokerEndpoint="<release>-broker:50051" \
+>   --set admin.config.prometheusUrl="http://<release>-prometheus:9090"
+> ```
+
 ## How Proxy Mode Works
 
 In a multi-broker cluster, topics are assigned to specific brokers. When a client
@@ -236,6 +276,7 @@ helm install danube-core danube/danube-core -n danube \
 ## Cleanup
 
 ```bash
+helm uninstall danube-ui -n danube    # if installed
 helm uninstall danube-core -n danube
 helm uninstall danube-envoy -n danube
 kubectl delete namespace danube

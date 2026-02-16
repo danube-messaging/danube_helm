@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "danube-ui.admin.name" . }}
+  labels:
+    {{- include "danube-ui.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "danube-ui.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: admin
+  template:
+    metadata:
+      labels:
+        {{- include "danube-ui.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: admin
+    spec:
+      containers:
+        - name: danube-admin
+          image: "{{ .Values.admin.image.repository }}:{{ .Values.admin.image.tag }}"
+          imagePullPolicy: {{ .Values.admin.image.pullPolicy }}
+          args:
+            - "serve"
+            - "--mode"
+            - "ui"
+            - "--broker-endpoint"
+            - "{{ .Values.admin.config.brokerEndpoint }}"
+            - "--listen-addr"
+            - "0.0.0.0:{{ .Values.admin.service.port }}"
+            - "--request-timeout-ms"
+            - "{{ .Values.admin.config.requestTimeoutMs }}"
+            - "--cache-ttl-ms"
+            - "{{ .Values.admin.config.cacheTtlMs }}"
+            - "--prometheus-url"
+            - "{{ .Values.admin.config.prometheusUrl }}"
+            - "--cors-allow-origin"
+            - "{{ include "danube-ui.corsOrigin" . }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.admin.service.port }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ui/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ui/v1/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.admin.resources | nindent 12 }}
