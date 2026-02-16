@@ -3,5 +3,5 @@ name: danube-envoy
 description: Envoy gRPC proxy for Danube broker routing
 icon: https://raw.githubusercontent.com/danube-messaging/danube/main/wave.png
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "v1.31"

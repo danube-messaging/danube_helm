@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+
+jobs:
+  lint-and-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Helm lint
+        run: helm lint charts/*
+
+      - name: Template danube-core
+        run: helm template danube-core charts/danube-core
+
+      - name: Template danube-envoy
+        run: helm template danube-envoy charts/danube-envoy
+
+      - name: Template danube-ui
+        run: helm template danube-ui charts/danube-ui
+
+      - name: Template danube-connector (sink-qdrant)
+        run: helm template qdrant-sink charts/danube-connector -f charts/danube-connector/examples/sink-qdrant.yaml
+
+      - name: Template danube-connector (sink-deltalake)
+        run: helm template deltalake-sink charts/danube-connector -f charts/danube-connector/examples/sink-deltalake.yaml
+
+      - name: Template danube-connector (sink-surrealdb)
+        run: helm template surrealdb-sink charts/danube-connector -f charts/danube-connector/examples/sink-surrealdb.yaml
+
+      - name: Template danube-connector (source-mqtt)
+        run: helm template mqtt-source charts/danube-connector -f charts/danube-connector/examples/source-mqtt.yaml
+
+      - name: Template danube-connector (source-webhook)
+        run: helm template webhook-source charts/danube-connector -f charts/danube-connector/examples/source-webhook.yaml
