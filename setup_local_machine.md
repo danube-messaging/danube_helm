@@ -5,7 +5,7 @@ This guide deploys a 3-broker Danube cluster with an Envoy proxy on a local
 
 The deployment uses two Helm charts:
 - **danube-envoy** — Envoy gRPC proxy (installed first to get the proxy address)
-- **danube-core** — Brokers, etcd, Prometheus (installed with proxy address)
+- **danube-core** — Brokers with embedded Raft consensus, Prometheus (installed with proxy address)
 
 ## Prerequisites
 
@@ -81,11 +81,11 @@ helm install danube-core ./charts/danube-core -n danube \
 ```
 
 This deploys:
-- **3 broker pods** (StatefulSet) with persistence enabled
-- **1 etcd pod** for metadata storage
+- **3 broker pods** (StatefulSet) with persistence and embedded Raft consensus
 - **1 Prometheus pod** for metrics
 
-Brokers start in proxy mode from the beginning — no upgrade or restart needed.
+Brokers form a Raft cluster automatically using seed-node discovery via headless DNS.
+No external metadata store is needed — brokers manage consensus internally.
 
 Wait for all pods to become ready:
 
@@ -93,10 +93,10 @@ Wait for all pods to become ready:
 kubectl get pods -n danube -w
 ```
 
-> **Note**: The first broker pod may restart a few times (`CrashLoopBackOff`)
-> while waiting for etcd to become ready. This is normal — Kubernetes will keep
-> restarting it until etcd accepts connections, then the remaining brokers start
-> cleanly.
+> **Note**: Broker pods discover each other via headless DNS. The first pod to
+> start will auto-initialize as a single-node Raft cluster and the remaining pods
+> join as they come up. If a pod restarts before DNS resolves, Kubernetes will
+> retry automatically.
 
 ## 5. Verify the Installation
 
@@ -111,7 +111,6 @@ NAME                                      READY   STATUS    AGE
 danube-core-broker-0                      1/1     Running   2m
 danube-core-broker-1                      1/1     Running   2m
 danube-core-broker-2                      1/1     Running   2m
-danube-core-etcd-0                        1/1     Running   2m
 danube-core-prometheus-xxxxxxxxx          1/1     Running   2m
 danube-envoy-xxxxxxxxx                    1/1     Running   5m
 ```
@@ -208,13 +207,6 @@ connects, it may need to be redirected to the broker that owns its topic.
   header with the target broker's internal address.
 - Envoy's **Dynamic Forward Proxy** reads this header, resolves the broker's
   headless DNS name inside the cluster, and routes the request to the correct pod.
-
-## Inspect etcd (optional)
-
-```bash
-kubectl port-forward svc/danube-core-etcd 2379:2379 -n danube
-etcdctl --endpoints=http://localhost:2379 get --prefix /
-```
 
 ## Access Prometheus (optional)
 

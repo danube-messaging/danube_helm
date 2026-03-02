@@ -40,27 +40,19 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ include "danube-core.fullname" . }}-broker-headless
 {{- end -}}
 
-{{- define "danube-core.etcd.name" -}}
-{{ include "danube-core.fullname" . }}-etcd
-{{- end -}}
-
-{{- define "danube-core.etcd.headless" -}}
-{{ include "danube-core.fullname" . }}-etcd-headless
-{{- end -}}
-
-{{- define "danube-core.etcd.address" -}}
-{{ include "danube-core.etcd.name" . }}:{{ .Values.etcd.service.port }}
-{{- end -}}
-
-{{- define "danube-core.etcd.initialCluster" -}}
-{{- $replicas := int .Values.etcd.replicaCount -}}
-{{- $domain := .Values.etcd.cluster.domain -}}
-{{- $name := include "danube-core.etcd.name" . -}}
-{{- $headless := include "danube-core.etcd.headless" . -}}
-{{- $peerPort := int .Values.etcd.service.peerPort -}}
+{{/*
+Generate comma-separated Raft seed-node addresses from broker StatefulSet pods.
+Each entry is <pod>.<headless>.<namespace>.svc.cluster.local:<raft_port>.
+Used by --seed-nodes so brokers can discover each other for Raft cluster formation.
+*/}}
+{{- define "danube-core.broker.seedNodes" -}}
+{{- $replicas := int .Values.broker.replicaCount -}}
+{{- $name := include "danube-core.broker.name" . -}}
+{{- $headless := include "danube-core.broker.headless" . -}}
+{{- $raftPort := int .Values.broker.ports.raft -}}
 {{- range $i := until $replicas -}}
 {{- if $i }},{{ end -}}
-{{- printf "%s-%d=http://%s-%d.%s.%s.svc.%s:%d" $name $i $name $i $headless $.Release.Namespace $domain $peerPort -}}
+{{- printf "%s-%d.%s.%s.svc.cluster.local:%d" $name $i $headless $.Release.Namespace $raftPort -}}
 {{- end -}}
 {{- end -}}
 

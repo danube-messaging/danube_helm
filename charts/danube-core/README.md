@@ -6,10 +6,12 @@ This Helm chart deploys the core components of a Danube messaging cluster on Kub
 
 The chart includes the following components:
 
-- **Danube Brokers**: Rust-based messaging brokers (StatefulSet)
-- **ETCD**: Distributed key-value store for metadata (StatefulSet)
+- **Danube Brokers**: Rust-based messaging brokers with embedded Raft consensus (StatefulSet)
 - **Prometheus**: Metrics collection and monitoring (Deployment)
 - **Ingress** (optional): HTTP routing to broker admin and metrics endpoints
+
+> **Note**: Metadata is managed by the brokers themselves via embedded Raft consensus
+> (openraft). No external metadata store (e.g., ETCD) is required.
 
 ## Prerequisites
 
@@ -62,7 +64,7 @@ helm install danube-core ./charts/danube-core -n danube --create-namespace \
 ### Custom Installation
 
 ```bash
-helm install danube-core ./charts/danube-core --set broker.replicaCount=5 --set etcd.replicaCount=3
+helm install danube-core ./charts/danube-core --set broker.replicaCount=5
 ```
 
 ### Optional: Prepare Helper Script
@@ -95,6 +97,7 @@ The following table lists the configurable parameters of the Danube Core chart a
 | `broker.ports.client` | Client port | `6650` |
 | `broker.ports.admin` | Admin port | `50051` |
 | `broker.ports.prometheus` | Prometheus metrics port | `9040` |
+| `broker.ports.raft` | Raft inter-node transport port | `7650` |
 | `broker.persistence.enabled` | Enable persistent storage | `true` |
 | `broker.persistence.size` | Storage size | `20Gi` |
 | `broker.persistence.storageClass` | Storage class | `""` (default) |
@@ -107,24 +110,6 @@ The following table lists the configurable parameters of the Danube Core chart a
 | `broker.tls.enabled` | Enable TLS | `false` |
 | `broker.config.existingConfigMap` | Existing ConfigMap with broker config | `danube-broker-config` |
 | `broker.config.fileName` | Config file name in ConfigMap | `danube_broker.yml` |
-
-### ETCD Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `etcd.replicaCount` | Number of ETCD replicas | `3` |
-| `etcd.image.repository` | ETCD image repository | `quay.io/coreos/etcd` |
-| `etcd.image.tag` | ETCD image tag | `v3.5.9` |
-| `etcd.image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `etcd.service.port` | Client port | `2379` |
-| `etcd.service.peerPort` | Peer port | `2380` |
-| `etcd.persistence.enabled` | Enable persistent storage | `true` |
-| `etcd.persistence.size` | Storage size | `10Gi` |
-| `etcd.persistence.storageClass` | Storage class | `""` (default) |
-| `etcd.resources.requests.memory` | Memory request | `512Mi` |
-| `etcd.resources.requests.cpu` | CPU request | `250m` |
-| `etcd.resources.limits.memory` | Memory limit | `1Gi` |
-| `etcd.resources.limits.cpu` | CPU limit | `500m` |
 
 ### Prometheus Parameters
 
@@ -224,8 +209,7 @@ kubectl create configmap danube-broker-config \
 ### Example 2: Production with HA
 
 See `examples/values-production.yaml` for a production-ready configuration with:
-- 3 broker replicas
-- 3 ETCD replicas
+- 3 broker replicas with embedded Raft consensus
 - Persistent storage
 - Resource limits
 - Ingress with TLS
@@ -242,6 +226,72 @@ kubectl create configmap danube-broker-config \
   -n danube --dry-run=client -o yaml | kubectl apply -f -
 ```
 
+## Scaling the Cluster
+
+Brokers auto-detect whether they are joining an existing cluster or bootstrapping a new one.
+During peer discovery, each fresh node checks if any seed peer already has an elected Raft leader.
+If so, the node enters **join mode** automatically (registers as "drained") and waits to be
+added to the Raft group via the admin CLI.
+
+### Scale Up (e.g., 3 → 5 brokers)
+
+```bash
+# 1. Increase replica count — new pods auto-detect the existing cluster
+helm upgrade danube-core ./charts/danube-core -n danube \
+  --set broker.replicaCount=5
+
+# 2. Wait for new pods to start (they will log "entering join mode")
+kubectl get pods -n danube -w
+
+# 3. Add each new node to the Raft cluster
+danube-admin cluster add-node --node-addr http://danube-core-broker-3.<headless>:7650
+danube-admin cluster add-node --node-addr http://danube-core-broker-4.<headless>:7650
+
+# 4. Promote new nodes to voters
+danube-admin cluster promote-node --node-id <ID3>
+danube-admin cluster promote-node --node-id <ID4>
+
+# 5. Activate the brokers so they accept topics
+danube-admin brokers activate --broker-id <ID3>
+danube-admin brokers activate --broker-id <ID4>
+
+# 6. Optionally rebalance topics across all brokers
+danube-admin brokers rebalance
+```
+
+### Scale Down (e.g., 5 → 3 brokers)
+
+Remove nodes from the Raft group **before** reducing replicas:
+
+```bash
+# 1. Remove brokers from Raft membership
+danube-admin cluster remove-node --node-id <ID4>
+danube-admin cluster remove-node --node-id <ID3>
+
+# 2. Scale down the StatefulSet
+helm upgrade danube-core ./charts/danube-core -n danube \
+  --set broker.replicaCount=3
+```
+
+### Replace a Failed Pod (PVC lost)
+
+If a pod's PVC is destroyed, it starts with a new `node_id` and auto-detects the existing
+cluster. The old node must be removed from Raft membership first:
+
+```bash
+# 1. Remove the stale node from Raft
+danube-admin cluster remove-node --node-id <OLD_ID>
+
+# 2. Delete the broken PVC and pod (StatefulSet recreates them)
+kubectl delete pvc data-danube-core-broker-<N> -n danube
+kubectl delete pod danube-core-broker-<N> -n danube
+
+# 3. Add the replacement node (new node_id) via the standard scale-up steps
+danube-admin cluster add-node --node-addr http://danube-core-broker-<N>.<headless>:7650
+danube-admin cluster promote-node --node-id <NEW_ID>
+danube-admin brokers activate --broker-id <NEW_ID>
+```
+
 ## Troubleshooting
 
 ### Pods not starting
@@ -249,14 +299,6 @@ kubectl create configmap danube-broker-config \
 Check pod logs:
 ```bash
 kubectl logs -l app.kubernetes.io/component=broker
-kubectl logs -l app.kubernetes.io/component=etcd
-```
-
-### ETCD cluster issues
-
-Check ETCD cluster health:
-```bash
-kubectl exec -it danube-core-etcd-0 -- etcdctl endpoint health
 ```
 
 ### Broker connectivity issues
@@ -293,23 +335,18 @@ The chart creates the following resources:
     │                 │                 │
 ┌───▼────┐    ┌───────▼──────┐   ┌─────▼──────┐
 │ Broker │    │ Broker       │   │ Prometheus │
-│ Pod 0  │    │ Service      │   │            │
+│ Pod 0  │◄──►│ Service      │   │            │
 ├────────┤    │ (ClusterIP)  │   │ Scrapes    │
 │ Broker │    └──────────────┘   │ Brokers    │
-│ Pod 1  │                       └────────────┘
-├────────┤                              │
-│ Broker │                              │
-│ Pod 2  │    ┌──────────────┐          │
-└────┬───┘    │ Broker       │          │
-     │        │ Headless Svc │          │
-     │        │ (StatefulSet)│          │
-     │        └──────────────┘          │
-     │                                  │
-     │        ┌──────────────┐          │
-     └────────► ETCD         ◄──────────┘
-              │ StatefulSet  │
-              │ (3 replicas) │
-              └──────────────┘
+│ Pod 1  │◄──►                   └────────────┘
+├────────┤    ┌──────────────┐
+│ Broker │    │ Broker       │
+│ Pod 2  │◄──►│ Headless Svc │
+└────────┘    │ (StatefulSet)│
+  Embedded    └──────────────┘
+  Raft ◄─►  Peer-to-peer via
+  Consensus   headless DNS
+              (port 7650)
 ```
 
 ## Support
