@@ -7,7 +7,7 @@ Modular Helm charts for deploying [Danube](https://github.com/danube-messaging/d
 | Chart | Description |
 |-------|-------------|
 | **[danube-envoy](charts/danube-envoy/)** | Envoy gRPC proxy for routing clients to the correct broker |
-| **[danube-core](charts/danube-core/)** | Core components: brokers (StatefulSet), etcd, Prometheus |
+| **[danube-core](charts/danube-core/)** | Core components: brokers with embedded Raft consensus (StatefulSet), Prometheus |
 | **[danube-ui](charts/danube-ui/)** | Admin server + web dashboard for cluster monitoring |
 | **[danube-connector](charts/danube-connector/)** | Generic chart for deploying any Danube source/sink connector |
 
@@ -16,7 +16,7 @@ Modular Helm charts for deploying [Danube](https://github.com/danube-messaging/d
 ```
 charts/
 ├── danube-envoy/        # Envoy gRPC proxy (Deployment + NodePort/LoadBalancer)
-├── danube-core/         # Brokers, etcd, Prometheus
+├── danube-core/         # Brokers (embedded Raft), Prometheus
 │   └── examples/        # Broker configs + values-minimal.yaml for Kind
 ├── danube-ui/           # Admin server + web dashboard
 └── danube-connector/    # Generic connector (one chart, many connectors)
@@ -92,7 +92,7 @@ schema registry browsing.
 ## Documentation
 
 - **[Setup Local Machine](setup_local_machine.md)** — Complete local deployment guide with Kind
-- **[Danube Core Chart](charts/danube-core/README.md)** — Configuration reference for brokers, etcd, Prometheus
+- **[Danube Core Chart](charts/danube-core/README.md)** — Configuration reference for brokers, Prometheus
 - **[Envoy Proxy Example](charts/danube-envoy/examples/envoy-proxy.yaml)** — Reference for custom Envoy configurations
 
 ## Common Configuration Patterns
@@ -159,9 +159,6 @@ View logs:
 ```sh
 # Broker logs
 kubectl logs -l app.kubernetes.io/component=broker -n danube
-
-# ETCD logs
-kubectl logs -l app.kubernetes.io/component=etcd -n danube
 
 # Envoy proxy logs
 kubectl logs -l app.kubernetes.io/name=danube-envoy -n danube

@@ -10,12 +10,14 @@ broker:
   replicaCount: 3
   image:
     repository: ghcr.io/danube-messaging/danube-broker
-    tag: "v0.7.2"
+    # tag defaults to Chart.AppVersion; override to pin a specific version
+    tag: ""
     pullPolicy: IfNotPresent
   ports:
     client: 6650
     admin: 50051
     prometheus: 9040
+    raft: 7650
   service:
     type: ClusterIP
   externalAccess:
@@ -61,32 +63,6 @@ broker:
     minReplicas: 3
     maxReplicas: 10
     targetCPU: 70
-
-etcd:
-  replicaCount: 3
-  image:
-    repository: quay.io/coreos/etcd
-    tag: "v3.5.9"
-    pullPolicy: IfNotPresent
-  service:
-    port: 2379
-    peerPort: 2380
-  cluster:
-    initialClusterState: "new"
-    domain: "cluster.local"
-  persistence:
-    enabled: true
-    size: 2Gi
-    storageClass: ""
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 500m
-      memory: 512Mi
-  auth:
-    enabled: false
 
 prometheus:
   enabled: true

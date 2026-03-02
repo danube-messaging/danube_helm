@@ -7,10 +7,13 @@ broker:
     client: 6650
     admin: 50051
     prometheus: 9040
+    raft: 7650
 
+# Metadata Store Configuration (embedded Raft consensus)
+# data_dir is overridden by --data-dir CLI flag in Helm deployments.
+# seed_nodes is overridden by --seed-nodes CLI flag in Helm deployments.
 meta_store:
-  host: "danube-core-etcd"
-  port: 2379
+  data_dir: "/danube-data/raft"
 
 bootstrap_namespaces:
   - "default"
@@ -61,9 +64,6 @@ wal_cloud:
     secret_key: "${AWS_SECRET_ACCESS_KEY}"
     anonymous: false
     virtual_host_style: false
-  metadata:
-    etcd_endpoint: "danube-core-etcd:2379"
-    in_memory: false
 
 policies:
   max_producers_per_topic: 0

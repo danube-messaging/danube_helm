@@ -18,6 +18,9 @@ spec:
     - name: prometheus
       port: {{ .Values.broker.ports.prometheus }}
       targetPort: prometheus
+    - name: raft
+      port: {{ .Values.broker.ports.raft }}
+      targetPort: raft
   selector:
     {{- include "danube-core.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: broker

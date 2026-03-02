@@ -12,6 +12,8 @@ broker:
     admin: 50051
     # Prometheus metrics exporter
     prometheus: 9040
+    # Raft inter-node transport (overridden by --raft-addr CLI flag in Helm)
+    raft: 7650
   # Optional: advertised addresses for proxy/k8s mode.
   # If omitted, bind address (host:ports.client) is used for both broker_url and connect_url.
   # NOTE: In Helm deployments the CLI flags --advertised-addr and --connect-url override
@@ -22,10 +24,11 @@ broker:
   #   # External: shared address reachable by external clients via gRPC proxy/ingress
   #   connect_url: "broker.example.com:6650"
 
-# Metadata Store Configuration (etcd)
+# Metadata Store Configuration (embedded Raft consensus)
+# data_dir is overridden by --data-dir CLI flag in Helm deployments.
+# seed_nodes is overridden by --seed-nodes CLI flag in Helm deployments.
 meta_store:
-  host: "danube-core-etcd"
-  port: 2379
+  data_dir: "/danube-data/raft"
 
 # Namespaces to be created on boot
 bootstrap_namespaces:
@@ -84,9 +87,6 @@ wal_cloud:
   cloud:
     backend: "fs"
     root: "/danube-data/cloud-storage"
-  metadata:
-    etcd_endpoint: "danube-core-etcd:2379"
-    in_memory: false
 
 # Broker policies, that can be overwritten by namespace / topic policies
 policies:
