@@ -36,27 +36,13 @@ load_manager:
     min_topic_age_seconds: 300
     blacklist_topics: []
 
-wal_cloud:
-  wal:
-    dir: "/danube-data/wal"
-    file_name: "wal.log"
-    cache_capacity: 1024
-    file_sync:
-      interval_ms: 5000
-      max_batch_bytes: 10485760
-    rotation:
-      max_bytes: 536870912
-    retention:
-      time_minutes: 2880
-      size_mb: 20480
-      check_interval_minutes: 5
-  uploader:
-    enabled: true
-    interval_seconds: 60
-    root_prefix: "/danube-data"
-    max_object_mb: 1024
-  cloud:
-    backend: "s3"
+# Storage Configuration (object_store mode with S3/MinIO)
+storage:
+  mode: object_store
+  local_wal_root: "/danube-data/wal"
+  metadata_prefix: "/danube"
+  durable:
+    backend: s3
     root: "s3://danube-messages/cluster-data"
     region: "us-east-1"
     endpoint: "http://minio:9000"
@@ -64,6 +50,13 @@ wal_cloud:
     secret_key: "${AWS_SECRET_ACCESS_KEY}"
     anonymous: false
     virtual_host_style: false
+  local_retention:
+    time_minutes: 2880
+    size_mb: 20480
+    check_interval_minutes: 5
+  wal:
+    rotation:
+      max_bytes: 536870912
 
 policies:
   max_producers_per_topic: 0
